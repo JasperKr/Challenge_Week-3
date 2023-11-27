@@ -30,18 +30,23 @@ def color(r=0, g=0, b=0):
     return (r * 255, g * 255, b * 255)
 
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+def main():
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-    draw(screen)
+        draw(screen)
 
-    # Render the display onto the OpenGL display with the shaders!
-    shader.render(screen)
-    pygame.display.flip()
+        # Render the display onto the OpenGL display with the shaders!
+        shader.render(screen)
+        pygame.display.flip()
 
-    clock.tick(60)  # limits FPS to 60
+        clock.tick(60)  # limits FPS to 60
 
-pygame.quit()
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
