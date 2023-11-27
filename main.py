@@ -22,20 +22,18 @@ display.set_colorkey((0, 0, 0))  # Make all black on the display transparent
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 
-dark_gray = (169, 169, 169)
-
-dark_gray = (169, 169, 169)
+dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
 
 
 def color(r=0, g=0, b=0):
     return (r * 255, g * 255, b * 255)
 
 
-def drawings(screen, real_rgb_color):
+def draw(screen, real_rgb_color):
     screen.fill(color(math.cos(time.time()) * 0.5 + 0.5,
                 math.sin(time.time()) * 0.5 + 0.5, 0.5))
     pygame.draw.circle(screen, (real_rgb_color), [200, 200], 400, 50)
-    pygame.display.update()
+    pygame.display.flip()
 
 
 running = True
@@ -44,11 +42,9 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill(color(math.cos(time.time()) * 0.5 + 0.5,
-                math.sin(time.time()) * 0.5 + 0.5, 0.5))
+    draw(screen, dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay)
     # Render the display onto the OpenGL display with the shaders!
     shader.render(display)
-    pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
 
