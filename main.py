@@ -19,6 +19,8 @@ pygame.init()
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 
+dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
+
 
 def draw(screen):
     pygame.draw.circle(screen, color(1, 1, 1), [200, 200], 100, 20)
