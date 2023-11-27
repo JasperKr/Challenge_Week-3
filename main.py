@@ -3,6 +3,7 @@ import pygame_shaders
 import math
 import time
 import classes
+from pygame.locals import *
 
 pygame.init()
 screen = pygame.display.set_mode(
@@ -13,7 +14,10 @@ clock = pygame.time.Clock()
 shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
                                pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
-
+red = pygame.image.load('rode auto.png')
+blue = pygame.image.load('blauwe auto.png')
+yellow = pygame.image.load('gele auto.png')
+green = pygame.image.load('groene auto.png')
 
 pygame.init()
 
