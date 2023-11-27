@@ -2,6 +2,7 @@ import pygame
 import pygame_shaders
 import math
 import time
+import classes
 
 pygame.init()
 screen = pygame.display.set_mode(
@@ -16,11 +17,11 @@ shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
 
 pygame.init()
 
-# Create a new surface, this will be where you do all your pygame rendering
-display = pygame.Surface((1280, 720))
-display.set_colorkey((0, 0, 0))  # Make all black on the display transparent
-
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
+
+
+def draw(screen):
+    pygame.draw.circle(screen, color(1, 1, 1), [200, 200], 100, 20)
 
 
 def color(r=0, g=0, b=0):
@@ -33,10 +34,10 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill(color(math.cos(time.time()) * 0.5 + 0.5,
-                math.sin(time.time()) * 0.5 + 0.5, 0.5))
+    draw(screen)
+
     # Render the display onto the OpenGL display with the shaders!
-    shader.render(display)
+    shader.render(screen)
     pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
