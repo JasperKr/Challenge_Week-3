@@ -7,7 +7,7 @@ from pygame.locals import *
 pygame.init()
 screen = pygame.display.set_mode(
     (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("YO JASPER")
+pygame.display.set_caption("Racegame")
 clock = pygame.time.Clock()
 
 shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
@@ -141,6 +141,11 @@ class Player():
 
                 self.velocity[0] -= force[0]
                 self.velocity[1] -= force[1]
+
+    def draw(self, screen: pygame.Surface, car_images: list, camera: Camera):
+        # draw car
+        car_image = car_images[self.car_type]
+        screen.blit(car_image, (0, 0))
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
