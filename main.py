@@ -76,8 +76,24 @@ class Level():
         self.walls = walls
 
 
+class Camera():
+    def __init__(self, position=[0.0, 0.0], size=[0.0, 0.0], rotation=0) -> None:
+        self.position = position
+        self.size = size
+        self.rotation = rotation
+
+    def apply(self, image):
+        # rotate image
+        orig_rect = image.get_rect()
+        rot_image = pygame.transform.rotate(image, self.rotation)
+        rot_rect = orig_rect.copy()
+        rot_rect.center = self.position
+        rot_image = rot_image.subsurface(rot_rect).copy()
+        return rot_image
+
+
 class Player():
-    def __init__(self, position=[0.0, 0.0], radius=1.0, drag=0.1, obb=None, angle=0) -> None:
+    def __init__(self, position=[0.0, 0.0], radius=1.0, drag=0.1, obb=None, angle=0, car_type=0) -> None:
         if obb is None:
             obb = Obb([0.0, 0.0], [140, 190], 0)
         self.position = position
@@ -87,6 +103,7 @@ class Player():
         self.obb = obb
         self.angle = angle
         self.angular_velocity = 0
+        self.car_type = car_type
 
     def apply_force(self, x, y):
         self.velocity[0] += x
@@ -125,16 +142,27 @@ class Player():
                 self.velocity[0] -= force[0]
                 self.velocity[1] -= force[1]
 
+    def draw(self, screen: pygame.Surface, car_images: list, camera: Camera):
+        # draw car
+        car_image = car_images[self.car_type]
+        car_image = pygame.transform.rotate(
+            car_image, math.degrees(self.angle))
+        car_image = pygame.transform.scale(car_image, (140, 190))
+        # apply camera
+        car_image = camera.apply(car_image)
+        screen.blit(
+            car_image, (self.position[0] - 70 - camera.position[0], self.position[1] - 95 - camera.position[1]))
 
-pygame.init()
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 
 dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
 
 
-def draw(screen):
+def draw(screen, player_1, player_2, car_images, camera):
     pygame.draw.circle(screen, color(1, 1, 1), [200, 200], 100, 20)
+    player_1.draw(screen, car_images, camera)
+    player_2.draw(screen, car_images, camera)
 
 
 def color(r=0, g=0, b=0):
@@ -142,13 +170,28 @@ def color(r=0, g=0, b=0):
 
 
 def main():
+    player_1 = Player()
+    player_2 = Player()
+    camera = Camera()
+
+    car_images = [
+        pygame.image.load("assets/car_1.png"),
+        pygame.image.load("assets/car_2.png"),
+        pygame.image.load("assets/car_3.png"),
+        pygame.image.load("assets/car_4.png"),
+    ]
+
+    # scale car images
+    for i in range(len(car_images)):
+        car_images[i] = pygame.transform.scale(car_images[i], (151/2, 303/2))
+
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        draw(screen)
+        draw(screen, player_1, player_2, car_images, camera)
 
         # Render the display onto the OpenGL display with the shaders!
         shader.render(screen)
