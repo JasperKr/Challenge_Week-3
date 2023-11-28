@@ -7,7 +7,7 @@ from pygame.locals import *
 pygame.init()
 screen = pygame.display.set_mode(
     (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("HOI DAAN")
+pygame.display.set_caption("YO JASPER")
 clock = pygame.time.Clock()
 
 shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
@@ -130,7 +130,7 @@ pygame.init()
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 
-dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
+dark_gray = (169, 169, 169)
 
 
 def player_movement(key_pressed, player_1, player_2):
@@ -161,6 +161,13 @@ def color(r=0, g=0, b=0):
 
 
 def main():
+    bauhaus_font = pygame.font.SysFont('bauhaus93', 20)
+    name_player_one = input("What is the name of player 1? ")
+    name_player_two = input("What is the name of player 2? ")
+    color_player_one = input(
+        f"What color does {name_player_one} want to be? [Blue, Red, Yellow, Green] ")
+    color_player_two = input(
+        f"What color does {name_player_two} want to be? [Blue, Red, Yellow, Green] ")
     running = True
     while running:
         for event in pygame.event.get():
