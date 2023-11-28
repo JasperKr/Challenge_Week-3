@@ -5,14 +5,6 @@ import time
 from pygame.locals import *
 
 pygame.init()
-screen = pygame.display.set_mode(
-    (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("Racegame")
-clock = pygame.time.Clock()
-
-shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
-                               pos=(0, 0), vertex_path="shaders/vertex.glsl",
-                               fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
 
 def mix(v, w, i):
@@ -76,20 +68,13 @@ class Level():
         self.walls = walls
 
 
-class Camera():
-    def __init__(self, position=[0.0, 0.0], size=[0.0, 0.0], rotation=0) -> None:
-        self.position = position
-        self.size = size
-        self.rotation = rotation
+def rot_center(image, angle, x, y):
 
-    def apply(self, image):
-        # rotate image
-        orig_rect = image.get_rect()
-        rot_image = pygame.transform.rotate(image, self.rotation)
-        rot_rect = orig_rect.copy()
-        rot_rect.center = self.position
-        rot_image = rot_image.subsurface(rot_rect).copy()
-        return rot_image
+    rotated_image = pygame.transform.rotate(image, angle)
+    new_rect = rotated_image.get_rect(
+        center=image.get_rect(center=(x, y)).center)
+
+    return rotated_image, new_rect
 
 
 class Player():
@@ -142,10 +127,11 @@ class Player():
                 self.velocity[0] -= force[0]
                 self.velocity[1] -= force[1]
 
-    def draw(self, screen: pygame.Surface, car_images: list, camera: Camera):
+    def draw(self, screen: pygame.Surface, car_images: list):
         # draw car
-        car_image = car_images[self.car_type]
-        screen.blit(car_image, (0, 0))
+        rotated_image, new_rect = rot_center(
+            car_images[self.car_type], self.angle, self.position[0], self.position[1])
+        screen.blit(rotated_image, self.position)
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
@@ -171,10 +157,10 @@ def player_movement(key_pressed, player_1, player_2):
         player_2.handle_user_input("down")
 
 
-def draw(screen, player_1, player_2, car_images, camera):
-    pygame.draw.circle(screen, color(1, 1, 1), [200, 200], 100, 20)
-    player_1.draw(screen, car_images, camera)
-    player_2.draw(screen, car_images, camera)
+def draw(screen, player_1, player_2, car_images):
+    pygame.draw.circle(screen, color(1, 1, 1), [0, 0], 100, 20)
+    player_1.draw(screen, car_images)
+    player_2.draw(screen, car_images)
 
 
 def color(r=0, g=0, b=0):
@@ -192,9 +178,18 @@ def interface():
 
 
 def main():
+
+    screen = pygame.display.set_mode(
+        (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
+    pygame.display.set_caption("Racegame")
+    clock = pygame.time.Clock()
+
+    shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
+                                   pos=(0, 0), vertex_path="shaders/vertex.glsl",
+                                   fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
+
     player_1 = Player()
     player_2 = Player()
-    camera = Camera()
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -217,7 +212,7 @@ def main():
         player_movement(keys_pressed, player_1, player_2)
         player_1.update(1 / 60, [])
         player_2.update(1 / 60, [])
-        draw(screen, player_1, player_2, car_images, camera)
+        draw(screen, player_1, player_2, car_images)
 
         # Render the display onto the OpenGL display with the shaders!
         shader.render(screen)
