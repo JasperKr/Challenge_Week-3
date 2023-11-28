@@ -91,13 +91,16 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 
 class Player():
-    def __init__(self, position=[0.0, 0.0], radius=1.0, drag=0.1, obb=None, angle=0, car_type=0) -> None:
+    def __init__(self, position=None, radius=1.0, drag=0.5, angular_drag=4, obb=None, angle=0, car_type=0) -> None:
         if obb is None:
             obb = Obb([0.0, 0.0], [140, 190], 0)
+        if position is None:
+            position = [0.0, 0.0]
         self.position = position
         self.radius = radius
         self.velocity = [0.0, 0.0]
         self.drag = drag
+        self.angular_drag = angular_drag
         self.obb = obb
         self.angle = angle
         self.angular_velocity = 0
@@ -109,15 +112,19 @@ class Player():
 
     def handle_user_input(self, input: str):
         # input: up, down, left, right
-        direction = [math.cos(self.angle), math.sin(self.angle)]
+        angle = math.radians(self.angle)
+        acceleration = 15
+        direction = [math.cos(angle), math.sin(angle)]
         if input == "up":
-            self.apply_force(direction[0], direction[1])
+            self.apply_force(direction[0] * acceleration,
+                             direction[1] * acceleration)
         if input == "down":
-            self.apply_force(-direction[0], -direction[1])
+            self.apply_force(-direction[0] *
+                             acceleration, -direction[1] * acceleration)
         if input == "left":
-            self.angular_velocity -= 0.1
+            self.angular_velocity -= 15
         if input == "right":
-            self.angular_velocity += 0.1
+            self.angular_velocity += 15
 
     def update(self, dt, walls):
         self.position[0] += self.velocity[0] * dt
@@ -125,6 +132,9 @@ class Player():
 
         self.velocity[0] = mix(self.velocity[0], 0, dt * self.drag)
         self.velocity[1] = mix(self.velocity[1], 0, dt * self.drag)
+
+        self.angular_velocity = mix(
+            self.angular_velocity, 0, dt * self.angular_drag)
 
         self.angle += self.angular_velocity * dt
 
@@ -145,7 +155,7 @@ class Player():
     def draw(self, screen: pygame.Surface, car_images: list):
         # draw car
         blitRotate(screen, car_images[self.car_type],
-                   self.position, [151/4, 303/4], self.angle)
+                   self.position, [151/4, 303/4], -self.angle - 90)
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
@@ -203,7 +213,7 @@ def main():
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
     player_1 = Player()
-    player_2 = Player()
+    player_2 = Player(car_type=2)
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
