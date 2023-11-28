@@ -26,6 +26,25 @@ pygame.init()
 dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
 
 
+def player_movement(key_pressed, player_1, player_2):
+    if key_pressed == "w":
+        player_1.handle_user_input("up")
+    if key_pressed == "a":
+        player_1.handle_user_input("left")
+    if key_pressed == "d":
+        player_1.handle_user_input("right")
+    if key_pressed == "s":
+        player_1.handle_user_input("down")
+    if key_pressed == "UP":
+        player_2.handle_user_input("up")
+    if key_pressed == "LEFT":
+        player_2.handle_user_input("left")
+    if key_pressed == "RIGHT":
+        player_2.handle_user_input("right")
+    if key_pressed == "DOWN":
+        player_2.handle_user_input("down")
+
+
 def draw(screen):
     pygame.draw.circle(screen, color(1, 1, 1), [200, 200], 100, 20)
 
