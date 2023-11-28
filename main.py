@@ -68,13 +68,26 @@ class Level():
         self.walls = walls
 
 
-def rot_center(image, angle, x, y):
+def blitRotate(surf, image, pos, originPos, angle):
 
+    # offset from pivot to center
+    image_rect = image.get_rect(
+        topleft=(pos[0] - originPos[0], pos[1]-originPos[1]))
+    offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
+
+    # roatated offset from pivot to center
+    rotated_offset = offset_center_to_pivot.rotate(-angle)
+
+    # roatetd image center
+    rotated_image_center = (pos[0] - rotated_offset.x,
+                            pos[1] - rotated_offset.y)
+
+    # get a rotated image
     rotated_image = pygame.transform.rotate(image, angle)
-    new_rect = rotated_image.get_rect(
-        center=image.get_rect(center=(x, y)).center)
+    rotated_image_rect = rotated_image.get_rect(center=rotated_image_center)
 
-    return rotated_image, new_rect
+    # rotate and blit the image
+    surf.blit(rotated_image, rotated_image_rect)
 
 
 class Player():
@@ -113,6 +126,8 @@ class Player():
         self.velocity[0] = mix(self.velocity[0], 0, dt * self.drag)
         self.velocity[1] = mix(self.velocity[1], 0, dt * self.drag)
 
+        self.angle += self.angular_velocity * dt
+
         for object in walls:
             axis, overlap = is_obb_overlap(self.obb, object.obb)
             if axis is not None:
@@ -129,9 +144,8 @@ class Player():
 
     def draw(self, screen: pygame.Surface, car_images: list):
         # draw car
-        rotated_image, new_rect = rot_center(
-            car_images[self.car_type], self.angle, self.position[0], self.position[1])
-        screen.blit(rotated_image, self.position)
+        blitRotate(screen, car_images[self.car_type],
+                   self.position, [151/4, 303/4], self.angle)
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
@@ -208,6 +222,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+        screen.fill(dark_gray)
         draw(screen, player_1, player_2, car_images)
 
         # Render the display onto the OpenGL display with the shaders!
