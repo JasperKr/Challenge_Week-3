@@ -178,16 +178,16 @@ class Player():
         if abs(dot_product(car_right_vector, normalize(self.velocity))) > 0.4 and length(self.velocity) > 200:
 
             x, y = self.position
-            tire_1 = rotate_point([x - 303/6, y - 151/6],
+            tire_1 = rotate_point([x - 303 / 6, y - 151 / 6],
                                   self.position, self.angle)
             pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_1, 10, 0)
-            tire_2 = rotate_point([x + 303/6, y - 151/6],
+            tire_2 = rotate_point([x + 303 / 6, y - 151 / 6],
                                   self.position, self.angle)
             pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_2, 10, 0)
-            tire_3 = rotate_point([x - 303/6, y + 151/6],
+            tire_3 = rotate_point([x - 303 / 6, y + 151 / 6],
                                   self.position, self.angle)
             pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_3, 10, 0)
-            tire_4 = rotate_point([x + 303/6, y + 151/6],
+            tire_4 = rotate_point([x + 303 / 6, y + 151 / 6],
                                   self.position, self.angle)
             pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_4, 10, 0)
 
@@ -215,24 +215,23 @@ def player_movement(key_pressed, player_1, player_2):
         player_2.handle_user_input("down")
 
 
-def draw(screen, player_1, player_2, car_images):
+def draw(screen, player_1, player_2, car_images, rectangle, player_1_score, player_2_score):
+    bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
     pygame.draw.circle(screen, color(1, 1, 1), [0, 0], 100, 20)
+    pygame.draw.rect(screen, (100, 200, 50), rectangle)
+    player_1_score_text = bauhaus_font.render(
+        f"Player 1 score: {player_1_score}", True, (255, 255, 0))
+    player_2_score_text = bauhaus_font.render(
+        f"Player 2 score: {player_2_score}", True, (255, 255, 0))
+    screen.blit(player_2_score_text,
+                (1280 - player_2_score_text.get_width() - 10, 10))
+    screen.blit(player_1_score_text, (10, 10))
     player_1.draw(screen, car_images)
     player_2.draw(screen, car_images)
 
 
 def color(r=0, g=0, b=0):
     return (r * 255, g * 255, b * 255)
-
-
-def interface():
-    bauhaus_font = pygame.font.SysFont('bauhaus93', 20)
-    name_player_one = input("What is the name of player 1? ")
-    name_player_two = input("What is the name of player 2? ")
-    color_player_one = input(
-        f"What color does {name_player_one} want to be? [Blue, Red, Yellow, Green] ")
-    color_player_two = input(
-        f"What color does {name_player_two} want to be? [Blue, Red, Yellow, Green] ")
 
 
 def main():
@@ -250,6 +249,9 @@ def main():
                                    pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
+    player_1_crosses_finishline = pygame.USEREVENT + 1
+    player_2_crosses_finishline = pygame.USEREVENT + 2
+
     player_1 = Player()
     player_2 = Player(car_type=2)
 
@@ -259,18 +261,20 @@ def main():
         pygame.image.load("assets/car_3.png"),
         pygame.image.load("assets/car_4.png"),
     ]
-
+    finish_line = pygame.Rect(1280 // 2, 360, 20, 200)
     # scale car images
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
             car_images[i], (151 / 2, 303 / 2))
+
+    player_1_score = -1
+    player_2_score = -1
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
         tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
         player_1.draw_tire_marks(tire_marks_screen)
@@ -284,8 +288,17 @@ def main():
         player_2.update(1 / 60, [])
         screen.fill(dark_gray)
         screen.blit(tire_marks_screen, (0, 0))
-        draw(screen, player_1, player_2, car_images)
+        draw(screen, player_1, player_2, car_images,
+             finish_line, player_1_score, player_2_score)
 
+        if player_1.position[0] > finish_line.x and player_1.position[1] and player_1.position[0] < finish_line.x + 20 and player_1.position[1] < finish_line.y + 200:
+            player_1_score += 1
+        if player_2.position[0] > finish_line.x and player_2.position[1] and player_2.position[0] < finish_line.x + 20 and player_2.position[1] < finish_line.y + 200:
+            player_2_score += 1
+        # if event.type == player_1_crosses_finishline:
+        #    player_1_score += 1
+        # if event.type == player_2_crosses_finishline:
+        #    player_2_score += 1
         # Render the display onto the OpenGL display with the shaders!
         shader.render(screen)
         pygame.display.flip()
