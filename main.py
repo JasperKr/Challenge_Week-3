@@ -153,21 +153,21 @@ dark_gray = (169, 169, 169)
 
 
 def player_movement(key_pressed, player_1, player_2):
-    if key_pressed == "w":
+    if key_pressed[pygame.K_w]:
         player_1.handle_user_input("up")
-    if key_pressed == "a":
+    if key_pressed[pygame.K_a]:
         player_1.handle_user_input("left")
-    if key_pressed == "d":
+    if key_pressed[pygame.K_d]:
         player_1.handle_user_input("right")
-    if key_pressed == "s":
+    if key_pressed[pygame.K_s]:
         player_1.handle_user_input("down")
-    if key_pressed == "UP":
+    if key_pressed[pygame.K_UP]:
         player_2.handle_user_input("up")
-    if key_pressed == "LEFT":
+    if key_pressed[pygame.K_LEFT]:
         player_2.handle_user_input("left")
-    if key_pressed == "RIGHT":
+    if key_pressed[pygame.K_RIGHT]:
         player_2.handle_user_input("right")
-    if key_pressed == "DOWN":
+    if key_pressed[pygame.K_DOWN]:
         player_2.handle_user_input("down")
 
 
@@ -214,14 +214,18 @@ def main():
 
     # scale car images
     for i in range(len(car_images)):
-        car_images[i] = pygame.transform.scale(car_images[i], (151/2, 303/2))
+        car_images[i] = pygame.transform.scale(
+            car_images[i], (151 / 2, 303 / 2))
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+        keys_pressed = pygame.key.get_pressed()
+        player_movement(keys_pressed, player_1, player_2)
+        player_1.update(1 / 60, [])
+        player_2.update(1 / 60, [])
         screen.fill(dark_gray)
         draw(screen, player_1, player_2, car_images)
 
