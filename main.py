@@ -75,7 +75,7 @@ def blitRotate(surf, image, pos, originPos, angle):
 
     # offset from pivot to center
     image_rect = image.get_rect(
-        topleft=(pos[0] - originPos[0], pos[1]-originPos[1]))
+        topleft=(pos[0] - originPos[0], pos[1] - originPos[1]))
     offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
 
     # roatated offset from pivot to center
@@ -169,7 +169,7 @@ class Player():
     def draw(self, screen: pygame.Surface, car_images: list):
         # draw car
         blitRotate(screen, car_images[self.car_type],
-                   self.position, [151/4, 303/4], -self.angle - 90)
+                   self.position, [151 / 4, 303 / 4], -self.angle - 90)
 
     def draw_tire_marks(self, screen: pygame.Surface):
 
@@ -277,6 +277,8 @@ def main():
         player_2.draw_tire_marks(tire_marks_screen)
 
         keys_pressed = pygame.key.get_pressed()
+        if keys_pressed[pygame.K_ESCAPE]:
+            running = False
         player_movement(keys_pressed, player_1, player_2)
         player_1.update(1 / 60, [])
         player_2.update(1 / 60, [])
