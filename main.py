@@ -7,7 +7,7 @@ from pygame.locals import *
 pygame.init()
 screen = pygame.display.set_mode(
     (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("HOI DAAN")
+pygame.display.set_caption("YO JASPER")
 clock = pygame.time.Clock()
 
 shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
@@ -142,21 +142,28 @@ class Player():
                 self.velocity[0] -= force[0]
                 self.velocity[1] -= force[1]
 
-    def draw(self, screen: pygame.Surface, car_images: list, camera: Camera):
-        # draw car
-        car_image = car_images[self.car_type]
-        car_image = pygame.transform.rotate(
-            car_image, math.degrees(self.angle))
-        car_image = pygame.transform.scale(car_image, (140, 190))
-        # apply camera
-        car_image = camera.apply(car_image)
-        screen.blit(
-            car_image, (self.position[0] - 70 - camera.position[0], self.position[1] - 95 - camera.position[1]))
-
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
+dark_gray = (169, 169, 169)
 
-dark_graaaaaaaaaaaaaaaaaaaaaaaaaaaay = (169, 169, 169)
+
+def player_movement(key_pressed, player_1, player_2):
+    if key_pressed == "w":
+        player_1.handle_user_input("up")
+    if key_pressed == "a":
+        player_1.handle_user_input("left")
+    if key_pressed == "d":
+        player_1.handle_user_input("right")
+    if key_pressed == "s":
+        player_1.handle_user_input("down")
+    if key_pressed == "UP":
+        player_2.handle_user_input("up")
+    if key_pressed == "LEFT":
+        player_2.handle_user_input("left")
+    if key_pressed == "RIGHT":
+        player_2.handle_user_input("right")
+    if key_pressed == "DOWN":
+        player_2.handle_user_input("down")
 
 
 def draw(screen, player_1, player_2, car_images, camera):
@@ -167,6 +174,16 @@ def draw(screen, player_1, player_2, car_images, camera):
 
 def color(r=0, g=0, b=0):
     return (r * 255, g * 255, b * 255)
+
+
+def interface():
+    bauhaus_font = pygame.font.SysFont('bauhaus93', 20)
+    name_player_one = input("What is the name of player 1? ")
+    name_player_two = input("What is the name of player 2? ")
+    color_player_one = input(
+        f"What color does {name_player_one} want to be? [Blue, Red, Yellow, Green] ")
+    color_player_two = input(
+        f"What color does {name_player_two} want to be? [Blue, Red, Yellow, Green] ")
 
 
 def main():
