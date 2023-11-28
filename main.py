@@ -27,7 +27,10 @@ def length(a1):
 
 
 def normalize(a1):
-    i = 1 / length(a1)
+    l = length(a1)
+    if l == 0:
+        return [0, 0]
+    i = 1 / l
     return [a1[0] * i, a1[1] * i]
 
 
@@ -78,7 +81,7 @@ def blitRotate(surf, image, pos, originPos, angle):
     # roatated offset from pivot to center
     rotated_offset = offset_center_to_pivot.rotate(-angle)
 
-    # roatetd image center
+    # rotated image center
     rotated_image_center = (pos[0] - rotated_offset.x,
                             pos[1] - rotated_offset.y)
 
@@ -88,6 +91,17 @@ def blitRotate(surf, image, pos, originPos, angle):
 
     # rotate and blit the image
     surf.blit(rotated_image, rotated_image_rect)
+
+
+def rotate_point(point, pivot, angle):
+    angle = math.radians(angle)
+    x = point[0] - pivot[0]
+    y = point[1] - pivot[1]
+    rotated_x = x * math.cos(angle) - y * math.sin(angle)
+    rotated_y = x * math.sin(angle) + y * math.cos(angle)
+    rotated_x += pivot[0]
+    rotated_y += pivot[1]
+    return [rotated_x, rotated_y]
 
 
 class Player():
@@ -157,6 +171,26 @@ class Player():
         blitRotate(screen, car_images[self.car_type],
                    self.position, [151/4, 303/4], -self.angle - 90)
 
+    def draw_tire_marks(self, screen: pygame.Surface):
+
+        car_right_vector = [-math.sin(math.radians(self.angle)),
+                            math.cos(math.radians(self.angle))]
+        if abs(dot_product(car_right_vector, normalize(self.velocity))) > 0.4 and length(self.velocity) > 200:
+
+            x, y = self.position
+            tire_1 = rotate_point([x - 303/6, y - 151/6],
+                                  self.position, self.angle)
+            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_1, 10, 0)
+            tire_2 = rotate_point([x + 303/6, y - 151/6],
+                                  self.position, self.angle)
+            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_2, 10, 0)
+            tire_3 = rotate_point([x - 303/6, y + 151/6],
+                                  self.position, self.angle)
+            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_3, 10, 0)
+            tire_4 = rotate_point([x + 303/6, y + 151/6],
+                                  self.position, self.angle)
+            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_4, 10, 0)
+
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 dark_gray = (169, 169, 169)
@@ -205,6 +239,10 @@ def main():
 
     screen = pygame.display.set_mode(
         (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
+    tire_marks_screen = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    tire_marks_replace_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    tire_marks_replace_surface.fill(dark_gray)
+    tire_marks_replace_surface.set_alpha(5)
     pygame.display.set_caption("Racegame")
     clock = pygame.time.Clock()
 
@@ -232,11 +270,18 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+        tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
+
+        player_1.draw_tire_marks(tire_marks_screen)
+        player_2.draw_tire_marks(tire_marks_screen)
+
         keys_pressed = pygame.key.get_pressed()
         player_movement(keys_pressed, player_1, player_2)
         player_1.update(1 / 60, [])
         player_2.update(1 / 60, [])
         screen.fill(dark_gray)
+        screen.blit(tire_marks_screen, (0, 0))
         draw(screen, player_1, player_2, car_images)
 
         # Render the display onto the OpenGL display with the shaders!
