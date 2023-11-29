@@ -139,6 +139,8 @@ class Player():
             self.angular_velocity -= 1200 * dt
         if input == "right":
             self.angular_velocity += 1200 * dt
+        if input == "break":
+            pass
 
     def update(self, dt, walls, finishline):
         self.position[0] += self.velocity[0] * dt
@@ -217,6 +219,8 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_1.handle_user_input("right", dt)
     if key_pressed[pygame.K_s]:
         player_1.handle_user_input("down", dt)
+    if key_pressed[pygame.K_LCTRL]:
+        player_1.handle_user_input("break", dt)
     if key_pressed[pygame.K_UP]:
         player_2.handle_user_input("up", dt)
     if key_pressed[pygame.K_LEFT]:
@@ -225,6 +229,8 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_2.handle_user_input("right", dt)
     if key_pressed[pygame.K_DOWN]:
         player_2.handle_user_input("down", dt)
+    if key_pressed[pygame.K_RCTRL]:
+        player_2.handle_user_input("break", dt)
 
 
 def draw(screen, player_1, player_2, car_images, finishline, camera_position):
