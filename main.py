@@ -308,6 +308,7 @@ def main():
         # if event.type == player_2_crosses_finishline:
         #    player_2_score += 1
         # Render the display onto the OpenGL display with the shaders!
+        pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
         pygame.display.flip()
 
