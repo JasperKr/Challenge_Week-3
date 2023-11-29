@@ -64,7 +64,6 @@ def is_obb_overlap(o1, o2):
 
 
 def blitRotate(surf, image, pos, originPos, angle):
-
     # offset from pivot to center
     image_rect = image.get_rect(
         topleft=(pos[0] - originPos[0], pos[1] - originPos[1]))
@@ -186,7 +185,6 @@ class Player():
                    (self.position[0] + camera_position[0], self.position[1] + camera_position[1]), [151 / 4, 303 / 4], -self.angle - 90)
 
     def draw_tire_marks(self, screen: pygame.Surface):
-
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         if abs(dot_product(car_right_vector, normalize(self.velocity))) > 0.4 and length(self.velocity) > 200:
