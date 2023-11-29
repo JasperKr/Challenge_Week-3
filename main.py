@@ -11,13 +11,6 @@ def mix(v, w, i):
     return v * (1 - i) + w * i
 
 
-class Obb():
-    def __init__(self, position, size, rotation) -> None:
-        self.position = position
-        self.size = size
-        self.rotation = rotation
-
-
 def dot_product(a1, a2):
     return a1[0] * a2[0] + a1[1] * a2[1]
 
@@ -70,11 +63,6 @@ def is_obb_overlap(o1, o2):
     return separating_axis, min_overlap
 
 
-class Level():
-    def __init__(self, walls) -> None:
-        self.walls = walls
-
-
 def blitRotate(surf, image, pos, originPos, angle):
 
     # offset from pivot to center
@@ -108,6 +96,13 @@ def rotate_point(point, pivot, angle):
     return [rotated_x, rotated_y]
 
 
+class Obb():
+    def __init__(self, position, size, rotation) -> None:
+        self.position = position
+        self.size = size
+        self.rotation = rotation
+
+
 class Player():
     def __init__(self, position=None, radius=1.0, drag=0.5, angular_drag=4, obb=None, angle=0, car_type=0) -> None:
         if obb is None:
@@ -130,10 +125,10 @@ class Player():
         self.velocity[0] += x
         self.velocity[1] += y
 
-    def handle_user_input(self, input: str):
+    def handle_user_input(self, input: str, dt):
         # input: up, down, left, right
         angle = math.radians(self.angle)
-        acceleration = 15
+        acceleration = self.score * 2.5 + 10
         direction = [math.cos(angle), math.sin(angle)]
         if input == "up":
             self.apply_force(direction[0] * acceleration,
@@ -142,9 +137,9 @@ class Player():
             self.apply_force(-direction[0] *
                              acceleration, -direction[1] * acceleration)
         if input == "left":
-            self.angular_velocity -= 15
+            self.angular_velocity -= 1200 * dt
         if input == "right":
-            self.angular_velocity += 15
+            self.angular_velocity += 1200 * dt
 
     def update(self, dt, walls, finishline):
         self.position[0] += self.velocity[0] * dt
@@ -152,6 +147,12 @@ class Player():
 
         self.velocity[0] = mix(self.velocity[0], 0, dt * self.drag)
         self.velocity[1] = mix(self.velocity[1], 0, dt * self.drag)
+
+        car_right_vector = [-math.sin(math.radians(self.angle)),
+                            math.cos(math.radians(self.angle))]
+        side_velocity = dot_product(car_right_vector, normalize(self.velocity))
+        self.apply_force(
+            car_right_vector[0] * -side_velocity * 10, car_right_vector[1] * -side_velocity * 10)
 
         self.angular_velocity = mix(
             self.angular_velocity, 0, dt * self.angular_drag)
@@ -179,10 +180,10 @@ class Player():
         else:
             self.on_finishline = False
 
-    def draw(self, screen: pygame.Surface, car_images: list):
+    def draw(self, screen: pygame.Surface, car_images: list, camera_position):
         # draw car
         blitRotate(screen, car_images[self.car_type],
-                   self.position, [151 / 4, 303 / 4], -self.angle - 90)
+                   (self.position[0] + camera_position[0], self.position[1] + camera_position[1]), [151 / 4, 303 / 4], -self.angle - 90)
 
     def draw_tire_marks(self, screen: pygame.Surface):
 
@@ -209,29 +210,32 @@ class Player():
 dark_gray = (169, 169, 169)
 
 
-def player_movement(key_pressed, player_1, player_2):
+def player_movement(key_pressed, player_1, player_2, dt):
     if key_pressed[pygame.K_w]:
-        player_1.handle_user_input("up")
+        player_1.handle_user_input("up", dt)
     if key_pressed[pygame.K_a]:
-        player_1.handle_user_input("left")
+        player_1.handle_user_input("left", dt)
     if key_pressed[pygame.K_d]:
-        player_1.handle_user_input("right")
+        player_1.handle_user_input("right", dt)
     if key_pressed[pygame.K_s]:
-        player_1.handle_user_input("down")
+        player_1.handle_user_input("down", dt)
     if key_pressed[pygame.K_UP]:
-        player_2.handle_user_input("up")
+        player_2.handle_user_input("up", dt)
     if key_pressed[pygame.K_LEFT]:
-        player_2.handle_user_input("left")
+        player_2.handle_user_input("left", dt)
     if key_pressed[pygame.K_RIGHT]:
-        player_2.handle_user_input("right")
+        player_2.handle_user_input("right", dt)
     if key_pressed[pygame.K_DOWN]:
-        player_2.handle_user_input("down")
+        player_2.handle_user_input("down", dt)
 
 
-def draw(screen, player_1, player_2, car_images, finishline):
+def draw(screen, player_1, player_2, car_images, finishline, camera_position):
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
-    pygame.draw.circle(screen, color(1, 1, 1), [0, 0], 100, 20)
-    pygame.draw.rect(screen, (100, 200, 50), finishline)
+    line = (finishline[0] + camera_position[0],
+            finishline[1] + camera_position[1],
+            finishline[2],
+            finishline[3])
+    pygame.draw.rect(screen, (100, 200, 50), line)
     player_1_score_text = bauhaus_font.render(
         f"Player 1 score: {player_1.score}", True, (255, 255, 0))
     player_2_score_text = bauhaus_font.render(
@@ -239,8 +243,8 @@ def draw(screen, player_1, player_2, car_images, finishline):
     screen.blit(player_2_score_text,
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
-    player_1.draw(screen, car_images)
-    player_2.draw(screen, car_images)
+    player_1.draw(screen, car_images, camera_position)
+    player_2.draw(screen, car_images, camera_position)
 
 
 def color(r=0, g=0, b=0):
@@ -269,12 +273,16 @@ def main():
     ]
 
     racetrack = pygame.image.load("assets/racetrack.png")
-
-    tire_marks_screen = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    scale = 8
+    tire_marks_screen = pygame.transform.scale(
+        pygame.Surface((1280, 720)), (1280 * scale, 720 * scale))
     tire_marks_replace_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
-    racetrack = pygame.transform.scale(racetrack, (1280, 720))
     tire_marks_replace_surface.blit(racetrack, (0, 0))
-    tire_marks_replace_surface.set_alpha(5)
+    tire_marks_screen.set_alpha(200)
+    tire_marks_replace_surface = pygame.transform.scale(
+        tire_marks_replace_surface, (1280 * scale, 720 * scale))
+    racetrack = pygame.transform.scale(racetrack, (1280 * scale, 720 * scale))
+    tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
     finishline = [1280 // 2, 360, 40, 200]
     # scale car images
@@ -283,32 +291,37 @@ def main():
             car_images[i], (151 / 2, 303 / 2))
 
     running = True
+    start_time = 0
     while running:
+        dt = time.time() - start_time
+        start_time = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
+        camera_position = (-player_1.position[0] + 1280 / 2, -
+                           player_1.position[1] + 720 / 2)
         player_1.draw_tire_marks(tire_marks_screen)
         player_2.draw_tire_marks(tire_marks_screen)
 
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
-        player_movement(keys_pressed, player_1, player_2)
-        player_1.update(1 / 60, [], finishline)
-        player_2.update(1 / 60, [], finishline)
-        screen.blit(racetrack, (0, 0))
-        screen.blit(tire_marks_screen, (0, 0))
+        player_movement(keys_pressed, player_1, player_2, dt)
+        player_1.update(dt, [], finishline)
+        player_2.update(dt, [], finishline)
+        # screen.blit(racetrack,
+        #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
+        screen.blit(tire_marks_screen, camera_position)
         draw(screen, player_1, player_2, car_images,
-             finishline)
+             finishline, camera_position)
 
         # if event.type == player_1_crosses_finishline:
         #    player_1_score += 1
         # if event.type == player_2_crosses_finishline:
         #    player_2_score += 1
         # Render the display onto the OpenGL display with the shaders!
-        pygame.transform.scale(screen, (1280 * 2, 720 * 2))
+        # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
         pygame.display.flip()
 
