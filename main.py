@@ -34,6 +34,10 @@ def normalize(a1):
     return [a1[0] * i, a1[1] * i]
 
 
+def point_aabb(px, py, x, y, w, h):
+    return px > x and py and px < x + w and py > y and py < y + h
+
+
 def is_obb_overlap(o1, o2):
     # axes vector
     a1 = [math.cos(o1.rotation), math.sin(o1.rotation)]
@@ -119,6 +123,8 @@ class Player():
         self.angle = angle
         self.angular_velocity = 0
         self.car_type = car_type
+        self.on_finishline = False
+        self.score = -1
 
     def apply_force(self, x, y):
         self.velocity[0] += x
@@ -140,7 +146,7 @@ class Player():
         if input == "right":
             self.angular_velocity += 15
 
-    def update(self, dt, walls):
+    def update(self, dt, walls, finishline):
         self.position[0] += self.velocity[0] * dt
         self.position[1] += self.velocity[1] * dt
 
@@ -165,6 +171,13 @@ class Player():
 
                 self.velocity[0] -= force[0]
                 self.velocity[1] -= force[1]
+
+        if point_aabb(self.position[0], self.position[1], finishline[0], finishline[1], finishline[2], finishline[3]):
+            if not self.on_finishline:
+                self.on_finishline = True
+                self.score += 1
+        else:
+            self.on_finishline = False
 
     def draw(self, screen: pygame.Surface, car_images: list):
         # draw car
@@ -215,14 +228,14 @@ def player_movement(key_pressed, player_1, player_2):
         player_2.handle_user_input("down")
 
 
-def draw(screen, player_1, player_2, car_images, rectangle, player_1_score, player_2_score):
+def draw(screen, player_1, player_2, car_images, finishline):
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
     pygame.draw.circle(screen, color(1, 1, 1), [0, 0], 100, 20)
-    pygame.draw.rect(screen, (100, 200, 50), rectangle)
+    pygame.draw.rect(screen, (100, 200, 50), finishline)
     player_1_score_text = bauhaus_font.render(
-        f"Player 1 score: {player_1_score}", True, (255, 255, 0))
+        f"Player 1 score: {player_1.score}", True, (255, 255, 0))
     player_2_score_text = bauhaus_font.render(
-        f"Player 2 score: {player_2_score}", True, (255, 255, 0))
+        f"Player 2 score: {player_2.score}", True, (255, 255, 0))
     screen.blit(player_2_score_text,
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
@@ -249,9 +262,6 @@ def main():
                                    pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
-    player_1_crosses_finishline = pygame.USEREVENT + 1
-    player_2_crosses_finishline = pygame.USEREVENT + 2
-
     player_1 = Player()
     player_2 = Player(car_type=2)
 
@@ -261,14 +271,11 @@ def main():
         pygame.image.load("assets/car_3.png"),
         pygame.image.load("assets/car_4.png"),
     ]
-    finish_line = pygame.Rect(1280 // 2, 360, 4, 200)
+    finishline = [1280 // 2, 360, 40, 200]
     # scale car images
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
             car_images[i], (151 / 2, 303 / 2))
-
-    player_1_score = -1
-    player_2_score = -1
 
     running = True
     while running:
@@ -284,17 +291,13 @@ def main():
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
         player_movement(keys_pressed, player_1, player_2)
-        player_1.update(1 / 60, [])
-        player_2.update(1 / 60, [])
+        player_1.update(1 / 60, [], finishline)
+        player_2.update(1 / 60, [], finishline)
         screen.fill(dark_gray)
         screen.blit(tire_marks_screen, (0, 0))
         draw(screen, player_1, player_2, car_images,
-             finish_line, player_1_score, player_2_score)
+             finishline)
 
-        if player_1.position[0] > finish_line.x and player_1.position[1] and player_1.position[0] < finish_line.x + 4 and player_1.position[1] < finish_line.y + 200:
-            player_1_score += 1
-        if player_2.position[0] > finish_line.x and player_2.position[1] and player_2.position[0] < finish_line.x + 4 and player_2.position[1] < finish_line.y + 200:
-            player_2_score += 1
         # if event.type == player_1_crosses_finishline:
         #    player_1_score += 1
         # if event.type == player_2_crosses_finishline:
