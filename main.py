@@ -175,6 +175,8 @@ class Player():
             self.angular_velocity -= 1200 * dt
         if input == "right":
             self.angular_velocity += 1200 * dt
+        if input == "break":
+            pass
 
     def update(self, dt, walls, finishline):
         self.position[0] += self.velocity[0] * dt
@@ -266,6 +268,8 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_1.handle_user_input("right", dt)
     if key_pressed[pygame.K_s]:
         player_1.handle_user_input("down", dt)
+    if key_pressed[pygame.K_LCTRL]:
+        player_1.handle_user_input("break", dt)
     if key_pressed[pygame.K_UP]:
         player_2.handle_user_input("up", dt)
     if key_pressed[pygame.K_LEFT]:
@@ -274,6 +278,8 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_2.handle_user_input("right", dt)
     if key_pressed[pygame.K_DOWN]:
         player_2.handle_user_input("down", dt)
+    if key_pressed[pygame.K_RCTRL]:
+        player_2.handle_user_input("break", dt)
 
 
 def draw(screen, player_1, player_2, car_images, finishline, camera_position):
@@ -375,10 +381,6 @@ def main():
             pygame.draw.rect(screen, color(1, 1, 1),
                              (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
 
-        # if event.type == player_1_crosses_finishline:
-        #    player_1_score += 1
-        # if event.type == player_2_crosses_finishline:
-        #    player_2_score += 1
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
