@@ -400,7 +400,10 @@ def main():
              finishline, camera_position_1, camera_position_2, sub_surface_1, sub_surface_2, tire_marks_screen)
         for wall in walls:
             pygame.draw.rect(screen, color(1, 1, 1),
-                             (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
+                             (wall.position[0] + camera_position_1[0], wall.position[1] + camera_position_1[1], wall.size[0], wall.size[1]))
+        for wall in walls:
+            pygame.draw.rect(screen, color(1, 1, 1),
+                             (wall.position[0] + camera_position_2[0], wall.position[1] + camera_position_2[1], wall.size[0], wall.size[1]))
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
