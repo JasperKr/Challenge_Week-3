@@ -301,10 +301,6 @@ def main():
         draw(screen, player_1, player_2, car_images,
              finishline)
 
-        # if event.type == player_1_crosses_finishline:
-        #    player_1_score += 1
-        # if event.type == player_2_crosses_finishline:
-        #    player_2_score += 1
         # Render the display onto the OpenGL display with the shaders!
         pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
