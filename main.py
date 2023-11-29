@@ -2,6 +2,8 @@ import pygame
 import pygame_shaders
 import math
 import time
+import random
+from walls import walls
 from pygame.locals import *
 
 pygame.init()
@@ -63,6 +65,43 @@ def is_obb_overlap(o1, o2):
     return separating_axis, min_overlap
 
 
+def point_abb_distance(x, y, w, h, px, py):
+    d = 0
+    if px < x:
+        d += pow(px - x, 2)
+    elif px > (x + w):
+        d += pow(px - (x + w), 2)
+
+    if py < y:
+        d += pow(py - y, 2)
+    elif py > (y + h):
+        d += pow(py - (y + h), 2)
+
+    return math.sqrt(d)
+
+
+def closest_point_to_aabb(x, y, w, h, cx, cy):
+    hit_x, hit_y = cx, cy
+    if cx < x:
+        hit_x = x
+    elif cx > (x + w):
+        hit_x = x + w
+    if cy < y:
+        hit_y = y
+    elif cy > (y + h):
+        hit_y = y + h
+    return hit_x, hit_y
+
+
+def aabb_circle(x, y, w, h, cx, cy, radius):
+    dist = point_abb_distance(x, y, w, h, cx, cy)
+    hit_pos = closest_point_to_aabb(x, y, w, h, cx, cy)
+    if dist < radius:
+        return hit_pos, normalize((cx - hit_pos[0], cy - hit_pos[1])), radius - dist
+    else:
+        return False
+
+
 def blitRotate(surf, image, pos, originPos, angle):
     # offset from pivot to center
     image_rect = image.get_rect(
@@ -103,9 +142,7 @@ class Obb():
 
 
 class Player():
-    def __init__(self, position=None, radius=1.0, drag=0.5, angular_drag=4, obb=None, angle=0, car_type=0) -> None:
-        if obb is None:
-            obb = Obb([0.0, 0.0], [140, 190], 0)
+    def __init__(self, position=None, radius=40.0, drag=0.3, angular_drag=4, angle=0, car_type=0) -> None:
         if position is None:
             position = [0.0, 0.0]
         self.position = position
@@ -113,7 +150,6 @@ class Player():
         self.velocity = [0.0, 0.0]
         self.drag = drag
         self.angular_drag = angular_drag
-        self.obb = obb
         self.angle = angle
         self.angular_velocity = 0
         self.car_type = car_type
@@ -127,7 +163,7 @@ class Player():
     def handle_user_input(self, input: str, dt):
         # input: up, down, left, right
         angle = math.radians(self.angle)
-        acceleration = self.score * 2.5 + 10
+        acceleration = self.score * 1 + 15
         direction = [math.cos(angle), math.sin(angle)]
         if input == "up":
             self.apply_force(direction[0] * acceleration,
@@ -151,7 +187,10 @@ class Player():
                             math.cos(math.radians(self.angle))]
         side_velocity = dot_product(car_right_vector, normalize(self.velocity))
         self.apply_force(
-            car_right_vector[0] * -side_velocity * 10, car_right_vector[1] * -side_velocity * 10)
+            car_right_vector[0] * -side_velocity * 15, car_right_vector[1] * -side_velocity * 15)
+        strength = max((1000 - length(self.velocity)) / 1000, 0)
+        self.apply_force(
+            car_right_vector[0] * -side_velocity * strength * 10, car_right_vector[1] * -side_velocity * strength * 10)
 
         self.angular_velocity = mix(
             self.angular_velocity, 0, dt * self.angular_drag)
@@ -159,18 +198,16 @@ class Player():
         self.angle += self.angular_velocity * dt
 
         for object in walls:
-            axis, overlap = is_obb_overlap(self.obb, object.obb)
-            if axis is not None:
-                self.position[0] += axis[0] * overlap
-                self.position[1] += axis[1] * overlap
+            collision = aabb_circle(object.position[0], object.position[1], object.size[0],
+                                    object.size[1], self.position[0], self.position[1], self.radius)
+            if collision != False:  # position,normal,depth
+                self.position[0] += collision[1][0] * collision[2]
+                self.position[1] += collision[1][1] * collision[2]
 
-                normal = normalize(axis)
+                direction = dot_product(self.velocity, collision[1])
 
-                force = [self.velocity[0] * normal[0],
-                         self.velocity[1] * normal[1]]
-
-                self.velocity[0] -= force[0]
-                self.velocity[1] -= force[1]
+                self.velocity[0] -= direction * collision[1][0]
+                self.velocity[1] -= direction * collision[1][1]
 
         if point_aabb(self.position[0], self.position[1], finishline[0], finishline[1], finishline[2], finishline[3]):
             if not self.on_finishline:
@@ -192,16 +229,28 @@ class Player():
             x, y = self.position
             tire_1 = rotate_point([x - 303 / 6, y - 151 / 6],
                                   self.position, self.angle)
-            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_1, 10, 0)
+            random_variation_color = random.random() * 0.1
+            tire_color = color(0.3 + random_variation_color, 0.3 +
+                               random_variation_color, 0.3 + random_variation_color)
+            pygame.draw.circle(screen, tire_color, tire_1, 10, 0)
             tire_2 = rotate_point([x + 303 / 6, y - 151 / 6],
                                   self.position, self.angle)
-            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_2, 10, 0)
+            random_variation_color = random.random() * 0.1
+            tire_color = color(0.3 + random_variation_color, 0.3 +
+                               random_variation_color, 0.3 + random_variation_color)
+            pygame.draw.circle(screen, tire_color, tire_2, 10, 0)
             tire_3 = rotate_point([x - 303 / 6, y + 151 / 6],
                                   self.position, self.angle)
-            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_3, 10, 0)
+            random_variation_color = random.random() * 0.1
+            tire_color = color(0.3 + random_variation_color, 0.3 +
+                               random_variation_color, 0.3 + random_variation_color)
+            pygame.draw.circle(screen, tire_color, tire_3, 10, 0)
             tire_4 = rotate_point([x + 303 / 6, y + 151 / 6],
                                   self.position, self.angle)
-            pygame.draw.circle(screen, color(0.2, 0.2, 0.2), tire_4, 10, 0)
+            random_variation_color = random.random() * 0.1
+            tire_color = color(0.3 + random_variation_color, 0.3 +
+                               random_variation_color, 0.3 + random_variation_color)
+            pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
@@ -260,7 +309,7 @@ def main():
                                    pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
-    player_1 = Player()
+    player_1 = Player(position=[4630, 875], angle=-180)
     player_2 = Player(car_type=2)
 
     car_images = [
@@ -271,7 +320,7 @@ def main():
     ]
 
     racetrack = pygame.image.load("assets/racetrack.png")
-    scale = 8
+    scale = 12
     tire_marks_screen = pygame.transform.scale(
         pygame.Surface((1280, 720)), (1280 * scale, 720 * scale))
     tire_marks_replace_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
@@ -287,6 +336,12 @@ def main():
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
             car_images[i], (151 / 2, 303 / 2))
+
+    for wall in walls:
+        wall.position[0] *= scale
+        wall.position[1] *= scale
+        wall.size[0] *= scale
+        wall.size[1] *= scale
 
     running = True
     start_time = 0
@@ -306,13 +361,19 @@ def main():
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
         player_movement(keys_pressed, player_1, player_2, dt)
-        player_1.update(dt, [], finishline)
-        player_2.update(dt, [], finishline)
+        if keys_pressed[pygame.K_SPACE]:
+            print(player_1.position)
+        player_1.update(dt, walls, finishline)
+        player_2.update(dt, walls, finishline)
         # screen.blit(racetrack,
         #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
         screen.blit(tire_marks_screen, camera_position)
+
         draw(screen, player_1, player_2, car_images,
              finishline, camera_position)
+        for wall in walls:
+            pygame.draw.rect(screen, color(1, 1, 1),
+                             (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
 
         # if event.type == player_1_crosses_finishline:
         #    player_1_score += 1
