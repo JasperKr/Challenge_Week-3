@@ -255,6 +255,15 @@ class Player():
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
 
 
+class Camera():
+    def __init__(self) -> None:
+        self.position = [0, 0]
+        self.screen = pygame.Surface(size=(1280 // 2, 720))
+        self.shader = pygame_shaders.Shader(size=(1280 // 2, 720), display=(1280 // 2, 720),
+                                            pos=(0, 0), vertex_path="shaders/vertex.glsl",
+                                            fragment_path="shaders/fragment.glsl", target_texture=self.screen)  # Load your shader!
+
+
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 dark_gray = (169, 169, 169)
 
@@ -306,14 +315,11 @@ def color(r=0, g=0, b=0):
 
 def main():
 
-    screen = pygame.display.set_mode(
-        (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption("Racegame")
     clock = pygame.time.Clock()
 
-    shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
-                                   pos=(0, 0), vertex_path="shaders/vertex.glsl",
-                                   fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
+    screen = pygame.display.set_mode(
+        (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
 
     player_1 = Player(position=[4630, 875], angle=-180)
     player_2 = Player(car_type=2)
@@ -337,6 +343,11 @@ def main():
     racetrack = pygame.transform.scale(racetrack, (1280 * scale, 720 * scale))
     tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
+    cameras = [
+        Camera(),
+        Camera(),
+    ]
+
     finishline = [1280 // 2, 360, 40, 200]
     # scale car images
     for i in range(len(car_images)):
@@ -358,8 +369,10 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        camera_position = (-player_1.position[0] + 1280 / 2, -
-                           player_1.position[1] + 720 / 2)
+        cameras[0].position = [-player_1.position[0] + 1280 / 4, -
+                               player_1.position[1] + 720 / 2]
+        cameras[1].position = [-player_2.position[0] + 1280 / 4, -
+                               player_2.position[1] + 720 / 2]
         player_1.draw_tire_marks(tire_marks_screen)
         player_2.draw_tire_marks(tire_marks_screen)
 
@@ -367,23 +380,26 @@ def main():
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
         player_movement(keys_pressed, player_1, player_2, dt)
-        if keys_pressed[pygame.K_SPACE]:
-            print(player_1.position)
         player_1.update(dt, walls, finishline)
         player_2.update(dt, walls, finishline)
         # screen.blit(racetrack,
         #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
-        screen.blit(tire_marks_screen, camera_position)
+        cameras[0].screen.blit(tire_marks_screen, cameras[0].position)
+        cameras[1].screen.blit(tire_marks_screen, cameras[1].position)
 
-        draw(screen, player_1, player_2, car_images,
-             finishline, camera_position)
-        for wall in walls:
-            pygame.draw.rect(screen, color(1, 1, 1),
-                             (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
+        draw(cameras[0].screen, player_1, player_2, car_images,
+             finishline, cameras[0].position)
+        draw(cameras[1].screen, player_1, player_2, car_images,
+             finishline, cameras[1].position)
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
-        shader.render(screen)
+        cameras[0].shader.render(cameras[0].screen)
+        cameras[1].shader.render(cameras[1].screen)
+        screen.blit(cameras[0].screen,
+                    pygame.rect.Rect(0, 0, 1280 // 2, 720))
+        screen.blit(cameras[1].screen,
+                    pygame.rect.Rect(1280 // 2, 0, 1280 // 2, 720))
         pygame.display.flip()
 
         clock.tick(60)  # limits FPS to 60
