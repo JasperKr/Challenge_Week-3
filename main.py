@@ -261,7 +261,7 @@ def main():
         pygame.image.load("assets/car_3.png"),
         pygame.image.load("assets/car_4.png"),
     ]
-    finish_line = pygame.Rect(1280 // 2, 360, 20, 200)
+    finish_line = pygame.Rect(1280 // 2, 360, 4, 200)
     # scale car images
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
@@ -291,9 +291,9 @@ def main():
         draw(screen, player_1, player_2, car_images,
              finish_line, player_1_score, player_2_score)
 
-        if player_1.position[0] > finish_line.x and player_1.position[1] and player_1.position[0] < finish_line.x + 20 and player_1.position[1] < finish_line.y + 200:
+        if player_1.position[0] > finish_line.x and player_1.position[1] and player_1.position[0] < finish_line.x + 4 and player_1.position[1] < finish_line.y + 200:
             player_1_score += 1
-        if player_2.position[0] > finish_line.x and player_2.position[1] and player_2.position[0] < finish_line.x + 20 and player_2.position[1] < finish_line.y + 200:
+        if player_2.position[0] > finish_line.x and player_2.position[1] and player_2.position[0] < finish_line.x + 4 and player_2.position[1] < finish_line.y + 200:
             player_2_score += 1
         # if event.type == player_1_crosses_finishline:
         #    player_1_score += 1
