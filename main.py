@@ -251,6 +251,10 @@ def main():
 
     screen = pygame.display.set_mode(
         (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
+    tire_marks_screen = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    tire_marks_replace_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    tire_marks_replace_surface.fill(dark_gray)
+    tire_marks_replace_surface.set_alpha(5)
     pygame.display.set_caption("Racegame")
     clock = pygame.time.Clock()
 
@@ -267,15 +271,6 @@ def main():
         pygame.image.load("assets/car_3.png"),
         pygame.image.load("assets/car_4.png"),
     ]
-
-    racetrack = pygame.image.load("assets/racetrack.png")
-
-    tire_marks_screen = pygame.Surface((1280, 720), pygame.SRCALPHA)
-    tire_marks_replace_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
-    racetrack = pygame.transform.scale(racetrack, (1280, 720))
-    tire_marks_replace_surface.blit(racetrack, (0, 0))
-    tire_marks_replace_surface.set_alpha(5)
-
     finishline = [1280 // 2, 360, 40, 200]
     # scale car images
     for i in range(len(car_images)):
@@ -298,7 +293,7 @@ def main():
         player_movement(keys_pressed, player_1, player_2)
         player_1.update(1 / 60, [], finishline)
         player_2.update(1 / 60, [], finishline)
-        screen.blit(racetrack, (0, 0))
+        screen.fill(dark_gray)
         screen.blit(tire_marks_screen, (0, 0))
         draw(screen, player_1, player_2, car_images,
              finishline)
