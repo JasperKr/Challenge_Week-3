@@ -323,6 +323,7 @@ class Player():
 dark_gray = (169, 169, 169)
 
 
+
 def player_movement(key_pressed, players, dt):
     if key_pressed[pygame.K_w]:
         players[0].handle_user_input("up", dt)
@@ -365,6 +366,7 @@ def main():
     shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
                                    pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
+
 
     players = [
         Player(position=[4630, 875], angle=-180),
@@ -453,6 +455,7 @@ def main():
         draw(screen, players, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
 
+
         # for waypoint in ai_waypoints[ai_waypoints_index]:
         #     draw_color = (255, 0, 0)
         #     if ai_waypoints_index == 1:
@@ -473,6 +476,7 @@ def main():
                 screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
                                        720 / 2 - win_text.get_height() - 200))
                 running = False
+
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
