@@ -437,32 +437,12 @@ def main():
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
         player_movement(keys_pressed, players, dt)
-        # if keys_pressed[pygame.K_SPACE]:
-        #     if not added_waypoint_last_frame:
-        #         ai_waypoints[ai_waypoints_index].append(
-        #             (players[0].position[0], players[0].position[1]))
-        #         added_waypoint_last_frame = True
-        # else:
-        #     added_waypoint_last_frame = False
-        # if keys_pressed[pygame.K_y]:
-        #     print(ai_waypoints[ai_waypoints_index])
         for player in players:
             player.update(dt, walls, finishline,
                           ai_waypoints)
 
         draw(screen, players, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
-
-        # for waypoint in ai_waypoints[ai_waypoints_index]:
-        #     draw_color = (255, 0, 0)
-        #     if ai_waypoints_index == 1:
-        #         draw_color = (0, 255, 0)
-        #     elif ai_waypoints_index == 2:
-        #         draw_color = (0, 0, 255)
-        #     elif ai_waypoints_index == 3:
-        #         draw_color = (255, 255, 0)
-        #     pygame.draw.circle(
-        #         screen, draw_color, (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
 
         bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
         for player in players:
