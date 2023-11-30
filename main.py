@@ -399,10 +399,8 @@ def color(r=0, g=0, b=0):
     return (r * 255, g * 255, b * 255)
 
 
-CHOOSING_COLOR = True
-
-
 def main():
+    # CHOOSING_COLOR = True
     screen = pygame.display.set_mode(
         (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption("Racegame")
@@ -421,7 +419,7 @@ def main():
         Player(car_type=3, position=[5760, 635],
                angle=-180, is_ai=True, ai_type=3)
     ]
-    car_color = car_color_chooser(player_1)
+    # car_color = car_color_chooser(players[0])
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -466,13 +464,13 @@ def main():
         (255, 255, 0)
     ]
 
-    while CHOOSING_COLOR:
-        keys_pressed = pygame.key.get_pressed()
-        color_of_car = carswitcher(keys_pressed)
-        if color_of_car != "ready":
-            car_color.change_color(color_of_car)
-        if color_of_car == "ready":
-            CHOOSING_COLOR = False
+    # while CHOOSING_COLOR:
+    #    keys_pressed = pygame.key.get_pressed()
+    #    color_of_car = carswitcher(keys_pressed)
+    #    if color_of_car != "ready":
+    #        car_color.change_color(color_of_car)
+    #    if color_of_car == "ready":
+    #        CHOOSING_COLOR = False
 
     running = True
     start_time = time.time()
