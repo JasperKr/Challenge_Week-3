@@ -280,6 +280,8 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_2.handle_user_input("down", dt)
     if key_pressed[pygame.K_RCTRL]:
         player_2.handle_user_input("break", dt)
+    if key_pressed[pygame.K_SPACE]:
+        player_1.handle_user_input("way_point_cords", dt)
 
 
 def draw(screen, player_1, player_2, car_images, finishline, camera_position, tire_marks_screen):
@@ -298,6 +300,7 @@ def draw(screen, player_1, player_2, car_images, finishline, camera_position, ti
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
     player_1.draw(screen, car_images, camera_position)
+    player_2.draw(screen, car_images, camera_position)
 
 
 def color(r=0, g=0, b=0):
@@ -315,7 +318,7 @@ def main():
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
     player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(car_type=2)
+    player_2 = Player(position=[4730, 1075], car_type=2, angle=-180)
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -336,7 +339,7 @@ def main():
     racetrack = pygame.transform.scale(racetrack, (1280 * scale, 720 * scale))
     tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
-    finishline = [1280 // 2, 360, 40, 200]
+    finishline = [4325, 500, 40, 550]
     # scale car images
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
@@ -379,13 +382,26 @@ def main():
             pygame.draw.rect(screen, color(1, 1, 1),
                              (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
 
+        bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
+        if player_1.score == 3:
+            red_wins = bauhaus_font.render(
+                "Red player wins!!!!", True, (255, 0, 0))
+            screen.blit(red_wins, (1280 / 2 - (red_wins.get_width() / 2),
+                                   720 / 2 - red_wins.get_height()))
+            running = False
+        elif player_2.score == 3:
+            blue_wins = bauhaus_font.render(
+                "Blue player wins!!!!", True, (0, 0, 255))
+            screen.blit(blue_wins, (1280 / 2 - (blue_wins.get_width() / 2),
+                                    720 / 2 - blue_wins.get_height()))
+            running = False
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
         pygame.display.flip()
 
         clock.tick(60)  # limits FPS to 60
-
+    time.sleep(5)
     pygame.quit()
 
 
