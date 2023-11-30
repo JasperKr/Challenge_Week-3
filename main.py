@@ -340,7 +340,7 @@ def main():
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
     player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(position=[4730, 1075], car_type=2, position=[4940, 635], angle=-180, angle=-180)
+    player_2 = Player(car_type=2, position=[4940, 635], angle=-180)
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
