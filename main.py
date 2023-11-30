@@ -278,7 +278,7 @@ class Player():
 dark_gray = (169, 169, 169)
 
 
-def player_movement(key_pressed, player_1, player_2, dt):
+def player_movement(key_pressed, player_1, player_2, dt, carswitcher):
     if key_pressed[pygame.K_w]:
         player_1.handle_user_input("up", dt)
     if key_pressed[pygame.K_a]:
@@ -340,7 +340,7 @@ def main():
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
     player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(car_type=2, position=[4940, 635], angle=-180)
+    player_2 = Player(position=[4940, 635], car_type=2, angle=-180)
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -412,20 +412,20 @@ def main():
 
         for waypoint in ai_waypoints:
             pygame.draw.circle(
-                screen, (255, 0, 0), (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
+                screen, (255, 0, 0), (waypoint[0] + camera_position[0], waypoint[1] + camera_position[1]), 20, 0)
 
         bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
         if player_1.score == 3:
             red_wins = bauhaus_font.render(
                 "Red player wins!!!!", True, (255, 0, 0))
             screen.blit(red_wins, (1280 / 2 - (red_wins.get_width() / 2),
-                                   720 / 2 - red_wins.get_height()))
+                                   520 / 2 - red_wins.get_height()))
             running = False
         elif player_2.score == 3:
             blue_wins = bauhaus_font.render(
                 "Blue player wins!!!!", True, (0, 0, 255))
             screen.blit(blue_wins, (1280 / 2 - (blue_wins.get_width() / 2),
-                                    720 / 2 - blue_wins.get_height()))
+                                    520 / 2 - blue_wins.get_height()))
             running = False
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
