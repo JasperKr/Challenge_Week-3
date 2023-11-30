@@ -308,7 +308,7 @@ class Player():
             self.waypoint_index %= len(ai_waypoints[self.ai_type])
         target_angle = math.atan2(difference[0], difference[1])
         self.angle = math.degrees(
-            lerp(car_angle, -target_angle+math.pi*0.5, 0.035))
+            lerp(car_angle, -target_angle + math.pi * 0.5, 0.035))
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         # correction_angle = -dot_product(normalize(self.velocity),
@@ -353,6 +353,23 @@ class Player():
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
 
 
+class car_color_chooser():
+    def __init__(self, player_1: Player) -> None:
+        self.player_1 = player_1
+
+    def change_color(self, chosen_car_color):
+        if chosen_car_color == "red":
+            self.player_1.car_type = 0
+        elif chosen_car_color == "green":
+            self.player_1.car_type = 1
+        elif chosen_car_color == "blue":
+            self.player_1.car_type = 2
+        elif chosen_car_color == "yellow":
+            self.player_1.car_type = 3
+        elif chosen_car_color == "ready":
+            return False
+
+
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 dark_gray = (169, 169, 169)
 
@@ -368,6 +385,32 @@ def player_movement(key_pressed, players, dt):
         players[0].handle_user_input("down", dt)
     if key_pressed[pygame.K_LCTRL]:
         players[0].handle_user_input("break", dt)
+
+
+def carswitcher(key_pressed):
+    if key_pressed[pygame.K_1]:
+        return "red"
+    if key_pressed[pygame.K_2]:
+        return "green"
+    if key_pressed[pygame.K_3]:
+        return "blue"
+    if key_pressed[pygame.K_4]:
+        return "yellow"
+    if key_pressed[pygame.K_0]:
+        return "ready"
+
+
+def carswitcher(key_pressed):
+    if key_pressed[pygame.K_1]:
+        return "red"
+    if key_pressed[pygame.K_2]:
+        return "green"
+    if key_pressed[pygame.K_3]:
+        return "blue"
+    if key_pressed[pygame.K_4]:
+        return "yellow"
+    if key_pressed[pygame.K_0]:
+        return "ready"
 
 
 def draw(screen, players, car_images, finishline, camera_position, tire_marks_screen, fps):
@@ -386,6 +429,7 @@ def color(r=0, g=0, b=0):
 
 
 def main():
+    # CHOOSING_COLOR = True
     screen = pygame.display.set_mode(
         (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption("Racegame")
@@ -404,6 +448,7 @@ def main():
         Player(car_type=3, position=[5760, 635],
                angle=-180, is_ai=True, ai_type=3)
     ]
+    # car_color = car_color_chooser(players[0])
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -447,6 +492,14 @@ def main():
         (0, 0, 255),
         (255, 255, 0)
     ]
+
+    # while CHOOSING_COLOR:
+    #    keys_pressed = pygame.key.get_pressed()
+    #    color_of_car = carswitcher(keys_pressed)
+    #    if color_of_car != "ready":
+    #        car_color.change_color(color_of_car)
+    #    if color_of_car == "ready":
+    #        CHOOSING_COLOR = False
 
     running = True
     start_time = time.time()
@@ -511,7 +564,7 @@ def main():
         pygame.display.flip()
 
         clock.tick(60)  # limits FPS to 60
-    time.sleep(5)
+    # time.sleep(5)
     pygame.quit()
 
 
