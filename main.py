@@ -282,7 +282,7 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_2.handle_user_input("break", dt)
 
 
-def draw(screen, player_1, player_2, car_images, finishline, camera_position, tire_marks_screen):
+def draw(screen, player_1, player_2, car_images, finishline, camera_position, tire_marks_screen, fps):
     screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
     line_1 = (finishline[0] + camera_position[0],
@@ -298,6 +298,8 @@ def draw(screen, player_1, player_2, car_images, finishline, camera_position, ti
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
     player_1.draw(screen, car_images, camera_position)
+    fps_text = bauhaus_font.render(f"FPS{fps}", True, (255, 255, 0))
+    screen.blit(fps_text, (10, 720 - fps_text.get_height() - 10))
 
 
 def color(r=0, g=0, b=0):
@@ -357,7 +359,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        camera_position = (-player_1.position[0] + 640 / 2, -
+        camera_position = (-player_1.position[0] + 1280 / 2, -
                            player_1.position[1] + 720 / 2)
         player_1.draw_tire_marks(tire_marks_screen)
         player_2.draw_tire_marks(tire_marks_screen)
@@ -374,10 +376,7 @@ def main():
         #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
 
         draw(screen, player_1, player_2, car_images,
-             finishline, camera_position, tire_marks_screen)
-        for wall in walls:
-            pygame.draw.rect(screen, color(1, 1, 1),
-                             (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
+             finishline, camera_position, tire_marks_screen, clock.get_fps())
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
