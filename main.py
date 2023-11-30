@@ -3,7 +3,7 @@ import pygame_shaders
 import math
 import time
 import random
-from walls import walls
+from game_data import walls, ai_waypoints
 from pygame.locals import *
 
 pygame.init()
@@ -31,6 +31,19 @@ def normalize(a1):
 
 def point_aabb(px, py, x, y, w, h):
     return px > x and py and px < x + w and py > y and py < y + h
+
+
+def lerp(a, b, i):
+    dist = b - a
+    dist = (dist + math.pi) % (2 * math.pi) - math.pi
+    step = i
+    if abs(dist) <= step:
+        return b
+    else:
+        if dist < 0:
+            step = -step
+        a += step
+    return a
 
 
 def is_obb_overlap(o1, o2):
@@ -176,7 +189,14 @@ class Player():
         if input == "right":
             self.angular_velocity += 1200 * dt
         if input == "break":
-            pass
+            break_force = 1000
+            if length(self.velocity) > break_force * dt:
+                direction = normalize(self.velocity)
+                self.velocity[0] -= direction[0] * break_force * dt
+                self.velocity[1] -= direction[1] * break_force * dt
+            else:
+                self.velocity[0] = 0
+                self.velocity[1] = 0
 
     def update(self, dt, walls, finishline):
         self.position[0] += self.velocity[0] * dt
@@ -198,7 +218,6 @@ class Player():
             self.angular_velocity, 0, dt * self.angular_drag)
 
         self.angle += self.angular_velocity * dt
-
         for object in walls:
             collision = aabb_circle(object.position[0], object.position[1], object.size[0],
                                     object.size[1], self.position[0], self.position[1], self.radius)
@@ -298,6 +317,7 @@ def draw(screen, player_1, player_2, car_images, finishline, camera_position, ti
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
     player_1.draw(screen, car_images, camera_position)
+    player_2.draw(screen, car_images, camera_position)
     fps_text = bauhaus_font.render(f"FPS{fps}", True, (255, 255, 0))
     screen.blit(fps_text, (10, 720 - fps_text.get_height() - 10))
 
@@ -317,7 +337,7 @@ def main():
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
     player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(car_type=2)
+    player_2 = Player(car_type=2, position=[4940, 635], angle=-180)
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -350,6 +370,8 @@ def main():
         wall.size[0] *= scale
         wall.size[1] *= scale
 
+    # added_waypoint_last_frame = False
+
     running = True
     start_time = 0
     while running:
@@ -368,8 +390,15 @@ def main():
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
         player_movement(keys_pressed, player_1, player_2, dt)
-        if keys_pressed[pygame.K_SPACE]:
-            print(player_1.position)
+        # if keys_pressed[pygame.K_SPACE]:
+        #     if not added_waypoint_last_frame:
+        #         ai_waypoints.append(
+        #             (player_1.position[0], player_1.position[1]))
+        #         added_waypoint_last_frame = True
+        # else:
+        #     added_waypoint_last_frame = False
+        # if keys_pressed[pygame.K_y]:
+        #     print(ai_waypoints)
         player_1.update(dt, walls, finishline)
         player_2.update(dt, walls, finishline)
         # screen.blit(racetrack,
@@ -377,6 +406,10 @@ def main():
 
         draw(screen, player_1, player_2, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
+
+        for waypoint in ai_waypoints:
+            pygame.draw.circle(
+                screen, (255, 0, 0), (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
