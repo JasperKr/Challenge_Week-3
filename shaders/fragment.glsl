@@ -25,6 +25,7 @@ out vec4 color;
 uniform sampler2D imageTexture;
 uniform PointLight[PointLightsAmount] PointLights;
 uniform SpotLight[SpotLightsAmount] SpotLights;
+uniform vec2 CameraPosition;
 
 vec3 evaluateLights(vec2 pos) {
     vec3 incomingLight = vec3(0.0);
@@ -59,6 +60,6 @@ vec3 evaluateLights(vec2 pos) {
 }
 
 void main() {
-    vec3 lightIntensity = evaluateLights(fragmentTexCoord * vec2(1280, 720)) + 1.0;
+    vec3 lightIntensity = evaluateLights(fragmentTexCoord * vec2(1280, 720) - CameraPosition) + 0.2;
     color = texture(imageTexture, fragmentTexCoord) * vec4(lightIntensity, 1.0);// * vec4(fragmentTexCoord, 0.0, 1.0);
 }

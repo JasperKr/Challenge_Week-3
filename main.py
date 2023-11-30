@@ -127,6 +127,14 @@ def aabb_circle(x, y, w, h, cx, cy, radius):
         return False
 
 
+def sphere_sphere(x, y, r, x1, y1, r1):
+    dist = length((x-x1, y-y1))
+    if dist < r+r1:
+        return (x+x1, y+y1), normalize((x-x1, y-y1)), (r+r1)-dist
+    else:
+        return False
+
+
 def blitRotate(surf, image, pos, originPos, angle):
     # offset from pivot to center
     image_rect = image.get_rect(
@@ -215,7 +223,7 @@ class Player():
                 self.velocity[0] = 0
                 self.velocity[1] = 0
 
-    def update(self, dt, walls, finishline, ai_waypoints):
+    def update(self, dt, walls, finishline, ai_waypoints, players):
         self.position[0] += self.velocity[0] * dt
         self.position[1] += self.velocity[1] * dt
 
@@ -250,7 +258,8 @@ class Player():
                 self.velocity[0] -= direction * collision[1][0]
                 self.velocity[1] -= direction * collision[1][1]
 
-                self.power_penalty = 2
+                self.power_penalty = min(
+                    max(length(self.velocity) / 100, 1.5), 2.5)
 
         if point_aabb(self.position[0], self.position[1], finishline[0], finishline[1], finishline[2], finishline[3]):
             if not self.on_finishline:
@@ -264,12 +273,37 @@ class Player():
         if self.is_ai:
             self.update_ai(dt, ai_waypoints)
 
+        for player in players:
+            if player != self:
+                self.handle_player_collision(player)
+
+    def handle_player_collision(self, player):
+        collision = sphere_sphere(
+            self.position[0], self.position[1], self.radius*1.25, player.position[0], player.position[1], player.radius*1.25)
+        if collision:
+            self.position[0] += collision[1][0] * collision[2] * 0.5
+            self.position[1] += collision[1][1] * collision[2] * 0.5
+
+            player.position[0] -= collision[1][0] * collision[2] * 0.5
+            player.position[1] -= collision[1][1] * collision[2] * 0.5
+
+            local_velocity = (
+                self.velocity[0]-player.velocity[0], self.velocity[1]-player.velocity[1])
+
+            direction = dot_product(local_velocity, collision[1])
+
+            self.velocity[0] -= direction * collision[1][0] * 0.5
+            self.velocity[1] -= direction * collision[1][1] * 0.5
+
+            player.velocity[0] += direction * collision[1][0] * 0.5
+            player.velocity[1] += direction * collision[1][1] * 0.5
+
     def update_ai(self, dt, ai_waypoints):
         car_angle = math.radians(self.angle)
         next_waypoint = ai_waypoints[self.ai_type][self.waypoint_index]
         difference = [next_waypoint[0]-self.position[0],
                       next_waypoint[1]-self.position[1]]
-        if length(difference) < 350:  # 400: overpowered
+        if length(difference) < 400:  # 400: overpowered
             self.waypoint_index += 1
             self.waypoint_index %= len(ai_waypoints[self.ai_type])
         target_angle = math.atan2(difference[0], difference[1])
@@ -277,9 +311,9 @@ class Player():
             lerp(car_angle, -target_angle+math.pi*0.5, 0.035))
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
-        correction_angle = -dot_product(normalize(self.velocity),
-                                        car_right_vector)
-        self.angle += correction_angle
+        # correction_angle = -dot_product(normalize(self.velocity),
+        # car_right_vector)
+        # self.angle += correction_angle
         self.handle_user_input("up", dt)
 
     def draw(self, screen: pygame.Surface, car_images: list, camera_position):
@@ -339,11 +373,6 @@ def player_movement(key_pressed, players, dt):
 def draw(screen, players, car_images, finishline, camera_position, tire_marks_screen, fps):
     screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
-    line_1 = (finishline[0] + camera_position[0],
-              finishline[1] + camera_position[1],
-              finishline[2],
-              finishline[3])
-    pygame.draw.rect(screen, (100, 200, 50), line_1)
     player_1_score_text = bauhaus_font.render(
         f"Player 1 score: {players[0].score}", True, (255, 255, 0))
     screen.blit(player_1_score_text, (10, 10))
@@ -430,6 +459,17 @@ def main():
 
         camera_position = (-players[0].position[0] + 1280 / 2, -
                            players[0].position[1] + 720 / 2)
+        shader.send("CameraPosition", camera_position)
+        shader.send("SpotLight.position", (5000, 635))
+        shader.send("SpotLight.range", (100.0))
+        shader.send("SpotLight.color", (1, 1, 1))
+        shader.send("SpotLight.focus", (50))
+        shader.send("SpotLight.direction", (-1.0, 0.0))
+        # vec2 position;
+        # float range;
+        # vec3 color;
+        # float focus;
+        # vec2 direction;
         for player in players:
             player.draw_tire_marks(tire_marks_screen)
 
@@ -439,7 +479,7 @@ def main():
         player_movement(keys_pressed, players, dt)
         for player in players:
             player.update(dt, walls, finishline,
-                          ai_waypoints)
+                          ai_waypoints, players)
 
         draw(screen, players, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
