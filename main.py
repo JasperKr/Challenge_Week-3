@@ -444,6 +444,17 @@ def main():
         draw(screen, players, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
 
+        # for waypoint in ai_waypoints[ai_waypoints_index]:
+        #     draw_color = (255, 0, 0)
+        #     if ai_waypoints_index == 1:
+        #         draw_color = (0, 255, 0)
+        #     elif ai_waypoints_index == 2:
+        #         draw_color = (0, 0, 255)
+        #     elif ai_waypoints_index == 3:
+        #         draw_color = (255, 255, 0)
+        #     pygame.draw.circle(
+        #         screen, draw_color, (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
+
         bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
         for player in players:
             if player.score == 3:
@@ -453,6 +464,7 @@ def main():
                 screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
                                        720 / 2 - win_text.get_height() - 200))
                 running = False
+
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
