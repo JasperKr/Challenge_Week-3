@@ -46,6 +46,18 @@ def lerp(a, b, i):
     return a
 
 
+def get_lerp_step(a, b, i):
+    dist = b - a
+    dist = (dist + math.pi) % (2 * math.pi) - math.pi
+    step = i
+    if abs(dist) <= step:
+        return -b
+    else:
+        if dist < 0:
+            step = -step
+        return step
+
+
 def is_obb_overlap(o1, o2):
     # axes vector
     a1 = [math.cos(o1.rotation), math.sin(o1.rotation)]
@@ -155,7 +167,7 @@ class Obb():
 
 
 class Player():
-    def __init__(self, position=None, radius=40.0, drag=0.3, angular_drag=4, angle=0, car_type=0) -> None:
+    def __init__(self, position=None, radius=40.0, drag=0.3, angular_drag=4, angle=0, car_type=0, is_ai=False, ai_type=0) -> None:
         if position is None:
             position = [0.0, 0.0]
         self.position = position
@@ -168,22 +180,27 @@ class Player():
         self.car_type = car_type
         self.on_finishline = False
         self.score = -1
+        self.waypoint_index = 0
+        self.is_ai = is_ai
+        self.ai_type = ai_type
+        self.power_penalty = 1
 
-    def apply_force(self, x, y):
-        self.velocity[0] += x
-        self.velocity[1] += y
+    def apply_force(self, x, y, dt):
+        self.velocity[0] += x * dt
+        self.velocity[1] += y * dt
 
     def handle_user_input(self, input: str, dt):
         # input: up, down, left, right
         angle = math.radians(self.angle)
-        acceleration = self.score * 1 + 15
+        acceleration = (self.score * 1 + 15) * 60  # 60 fps
+        acceleration /= self.power_penalty
         direction = [math.cos(angle), math.sin(angle)]
         if input == "up":
             self.apply_force(direction[0] * acceleration,
-                             direction[1] * acceleration)
+                             direction[1] * acceleration, dt)
         if input == "down":
             self.apply_force(-direction[0] *
-                             acceleration, -direction[1] * acceleration)
+                             acceleration, -direction[1] * acceleration, dt)
         if input == "left":
             self.angular_velocity -= 1200 * dt
         if input == "right":
@@ -198,7 +215,7 @@ class Player():
                 self.velocity[0] = 0
                 self.velocity[1] = 0
 
-    def update(self, dt, walls, finishline):
+    def update(self, dt, walls, finishline, ai_waypoints):
         self.position[0] += self.velocity[0] * dt
         self.position[1] += self.velocity[1] * dt
 
@@ -208,11 +225,14 @@ class Player():
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         side_velocity = dot_product(car_right_vector, normalize(self.velocity))
+
+        self.power_penalty = max(self.power_penalty - dt, 1)
+
         self.apply_force(
-            car_right_vector[0] * -side_velocity * 15, car_right_vector[1] * -side_velocity * 15)
+            car_right_vector[0] * -side_velocity * 900, car_right_vector[1] * -side_velocity * 900, dt)
         strength = max((1000 - length(self.velocity)) / 1000, 0)
         self.apply_force(
-            car_right_vector[0] * -side_velocity * strength * 10, car_right_vector[1] * -side_velocity * strength * 10)
+            car_right_vector[0] * -side_velocity * strength * 600, car_right_vector[1] * -side_velocity * strength * 600, dt)
 
         self.angular_velocity = mix(
             self.angular_velocity, 0, dt * self.angular_drag)
@@ -230,12 +250,37 @@ class Player():
                 self.velocity[0] -= direction * collision[1][0]
                 self.velocity[1] -= direction * collision[1][1]
 
+                self.power_penalty = 2
+
         if point_aabb(self.position[0], self.position[1], finishline[0], finishline[1], finishline[2], finishline[3]):
             if not self.on_finishline:
                 self.on_finishline = True
                 self.score += 1
         else:
             self.on_finishline = False
+
+        self.angle %= 360
+
+        if self.is_ai:
+            self.update_ai(dt, ai_waypoints)
+
+    def update_ai(self, dt, ai_waypoints):
+        car_angle = math.radians(self.angle)
+        next_waypoint = ai_waypoints[self.ai_type][self.waypoint_index]
+        difference = [next_waypoint[0]-self.position[0],
+                      next_waypoint[1]-self.position[1]]
+        if length(difference) < 350:  # 400: overpowered
+            self.waypoint_index += 1
+            self.waypoint_index %= len(ai_waypoints[self.ai_type])
+        target_angle = math.atan2(difference[0], difference[1])
+        self.angle = math.degrees(
+            lerp(car_angle, -target_angle+math.pi*0.5, 0.035))
+        car_right_vector = [-math.sin(math.radians(self.angle)),
+                            math.cos(math.radians(self.angle))]
+        correction_angle = -dot_product(normalize(self.velocity),
+                                        car_right_vector)
+        self.angle += correction_angle
+        self.handle_user_input("up", dt)
 
     def draw(self, screen: pygame.Surface, car_images: list, camera_position):
         # draw car
@@ -278,32 +323,21 @@ class Player():
 dark_gray = (169, 169, 169)
 
 
-def player_movement(key_pressed, player_1, player_2, dt, carswitcher):
+
+def player_movement(key_pressed, players, dt):
     if key_pressed[pygame.K_w]:
-        player_1.handle_user_input("up", dt)
+        players[0].handle_user_input("up", dt)
     if key_pressed[pygame.K_a]:
-        player_1.handle_user_input("left", dt)
+        players[0].handle_user_input("left", dt)
     if key_pressed[pygame.K_d]:
-        player_1.handle_user_input("right", dt)
+        players[0].handle_user_input("right", dt)
     if key_pressed[pygame.K_s]:
-        player_1.handle_user_input("down", dt)
+        players[0].handle_user_input("down", dt)
     if key_pressed[pygame.K_LCTRL]:
-        player_1.handle_user_input("break", dt)
-    if key_pressed[pygame.K_UP]:
-        player_2.handle_user_input("up", dt)
-    if key_pressed[pygame.K_LEFT]:
-        player_2.handle_user_input("left", dt)
-    if key_pressed[pygame.K_RIGHT]:
-        player_2.handle_user_input("right", dt)
-    if key_pressed[pygame.K_DOWN]:
-        player_2.handle_user_input("down", dt)
-    if key_pressed[pygame.K_RCTRL]:
-        player_2.handle_user_input("break", dt)
-    if key_pressed[pygame.K_SPACE]:
-        player_1.handle_user_input("way_point_cords", dt)
+        players[0].handle_user_input("break", dt)
 
 
-def draw(screen, player_1, player_2, car_images, finishline, camera_position, tire_marks_screen, fps):
+def draw(screen, players, car_images, finishline, camera_position, tire_marks_screen, fps):
     screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
     line_1 = (finishline[0] + camera_position[0],
@@ -312,17 +346,11 @@ def draw(screen, player_1, player_2, car_images, finishline, camera_position, ti
               finishline[3])
     pygame.draw.rect(screen, (100, 200, 50), line_1)
     player_1_score_text = bauhaus_font.render(
-        f"Player 1 score: {player_1.score}", True, (255, 255, 0))
-    player_2_score_text = bauhaus_font.render(
-        f"Player 2 score: {player_2.score}", True, (255, 255, 0))
-    screen.blit(player_2_score_text,
-                (1280 - player_2_score_text.get_width() - 10, 10))
+        f"Player 1 score: {players[0].score}", True, (255, 255, 0))
     screen.blit(player_1_score_text, (10, 10))
-    player_1.draw(screen, car_images, camera_position)
-    player_2.draw(screen, car_images, camera_position)
-    fps_text = bauhaus_font.render(f"FPS{fps}", True, (255, 255, 0))
-    screen.blit(fps_text, (10, 720 - fps_text.get_height() - 10))
-    player_2.draw(screen, car_images, camera_position)
+    players[0].draw(screen, car_images, camera_position)
+    for player in players:
+        player.draw(screen, car_images, camera_position)
 
 
 def color(r=0, g=0, b=0):
@@ -339,8 +367,16 @@ def main():
                                    pos=(0, 0), vertex_path="shaders/vertex.glsl",
                                    fragment_path="shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
-    player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(position=[4940, 635], car_type=2, angle=-180)
+
+    players = [
+        Player(position=[4630, 875], angle=-180),
+        Player(car_type=1, position=[4940, 635],
+               angle=-180, is_ai=True, ai_type=1),
+        Player(car_type=2, position=[5340, 875],
+               angle=-180, is_ai=True, ai_type=2),
+        Player(car_type=3, position=[5760, 635],
+               angle=-180, is_ai=True, ai_type=3)
+    ]
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -373,10 +409,20 @@ def main():
         wall.size[0] *= scale
         wall.size[1] *= scale
 
-    # added_waypoint_last_frame = False
+    added_waypoint_last_frame = False
+    ai_waypoints_index = 3
+    car_color_names = [
+        "Red", "Green", "Blue", "Yellow"
+    ]
+    car_colors = [
+        (255, 0, 0),
+        (0, 255, 0),
+        (0, 0, 255),
+        (255, 255, 0)
+    ]
 
     running = True
-    start_time = 0
+    start_time = time.time()
     while running:
         dt = time.time() - start_time
         start_time = time.time()
@@ -384,49 +430,53 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        camera_position = (-player_1.position[0] + 1280 / 2, -
-                           player_1.position[1] + 720 / 2)
-        player_1.draw_tire_marks(tire_marks_screen)
-        player_2.draw_tire_marks(tire_marks_screen)
+        camera_position = (-players[0].position[0] + 1280 / 2, -
+                           players[0].position[1] + 720 / 2)
+        for player in players:
+            player.draw_tire_marks(tire_marks_screen)
 
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
-        player_movement(keys_pressed, player_1, player_2, dt)
+        player_movement(keys_pressed, players, dt)
         # if keys_pressed[pygame.K_SPACE]:
         #     if not added_waypoint_last_frame:
-        #         ai_waypoints.append(
-        #             (player_1.position[0], player_1.position[1]))
+        #         ai_waypoints[ai_waypoints_index].append(
+        #             (players[0].position[0], players[0].position[1]))
         #         added_waypoint_last_frame = True
         # else:
         #     added_waypoint_last_frame = False
         # if keys_pressed[pygame.K_y]:
-        #     print(ai_waypoints)
-        player_1.update(dt, walls, finishline)
-        player_2.update(dt, walls, finishline)
-        # screen.blit(racetrack,
-        #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
+        #     print(ai_waypoints[ai_waypoints_index])
+        for player in players:
+            player.update(dt, walls, finishline,
+                          ai_waypoints)
 
-        draw(screen, player_1, player_2, car_images,
+        draw(screen, players, car_images,
              finishline, camera_position, tire_marks_screen, clock.get_fps())
 
-        for waypoint in ai_waypoints:
-            pygame.draw.circle(
-                screen, (255, 0, 0), (waypoint[0] + camera_position[0], waypoint[1] + camera_position[1]), 20, 0)
+
+        # for waypoint in ai_waypoints[ai_waypoints_index]:
+        #     draw_color = (255, 0, 0)
+        #     if ai_waypoints_index == 1:
+        #         draw_color = (0, 255, 0)
+        #     elif ai_waypoints_index == 2:
+        #         draw_color = (0, 0, 255)
+        #     elif ai_waypoints_index == 3:
+        #         draw_color = (255, 255, 0)
+        #     pygame.draw.circle(
+        #         screen, draw_color, (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
 
         bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
-        if player_1.score == 3:
-            red_wins = bauhaus_font.render(
-                "Red player wins!!!!", True, (255, 0, 0))
-            screen.blit(red_wins, (1280 / 2 - (red_wins.get_width() / 2),
-                                   520 / 2 - red_wins.get_height()))
-            running = False
-        elif player_2.score == 3:
-            blue_wins = bauhaus_font.render(
-                "Blue player wins!!!!", True, (0, 0, 255))
-            screen.blit(blue_wins, (1280 / 2 - (blue_wins.get_width() / 2),
-                                    520 / 2 - blue_wins.get_height()))
-            running = False
+        for player in players:
+            if player.score == 3:
+                car_color = car_color_names[player.car_type]
+                win_text = bauhaus_font.render(
+                    f"{car_color} player wins!!!!", True, car_colors[player.car_type])
+                screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
+                                       720 / 2 - win_text.get_height() - 200))
+                running = False
+
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
         shader.render(screen)
