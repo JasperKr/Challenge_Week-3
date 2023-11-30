@@ -282,24 +282,14 @@ def player_movement(key_pressed, player_1, player_2, dt):
         player_2.handle_user_input("break", dt)
 
 
-def draw(screen, player_1, player_2, car_images, finishline, camera_position_1, camera_position_2, sub_surface_1, sub_surface_2, tire_marks_screen):
-    screen.blit(tire_marks_screen, camera_position_1)
-    screen.blit(tire_marks_screen, camera_position_2)
-    pygame.draw.line(sub_surface_1, (255, 255, 255), (0, 0), (640, 0), 10)
-    pygame.draw.line(sub_surface_2, (255, 255, 255), (640, 0), (1280, 0), 10)
-    screen.blit(sub_surface_1, (0, 0))
-    screen.blit(sub_surface_2, (640, 0))
+def draw(screen, player_1, player_2, car_images, finishline, camera_position, tire_marks_screen):
+    screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
-    line_1 = (finishline[0] + camera_position_1[0],
-              finishline[1] + camera_position_1[1],
-              finishline[2],
-              finishline[3])
-    line_2 = (finishline[0] + camera_position_2[0],
-              finishline[1] + camera_position_2[1],
+    line_1 = (finishline[0] + camera_position[0],
+              finishline[1] + camera_position[1],
               finishline[2],
               finishline[3])
     pygame.draw.rect(screen, (100, 200, 50), line_1)
-    pygame.draw.rect(screen, (100, 200, 50), line_2)
     player_1_score_text = bauhaus_font.render(
         f"Player 1 score: {player_1.score}", True, (255, 255, 0))
     player_2_score_text = bauhaus_font.render(
@@ -307,8 +297,7 @@ def draw(screen, player_1, player_2, car_images, finishline, camera_position_1, 
     screen.blit(player_2_score_text,
                 (1280 - player_2_score_text.get_width() - 10, 10))
     screen.blit(player_1_score_text, (10, 10))
-    player_1.draw(screen, car_images, camera_position_1)
-    player_2.draw(screen, car_images, camera_position_2)
+    player_1.draw(screen, car_images, camera_position)
 
 
 def color(r=0, g=0, b=0):
@@ -347,16 +336,6 @@ def main():
     racetrack = pygame.transform.scale(racetrack, (1280 * scale, 720 * scale))
     tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
-    canvas_player_1 = pygame.Surface((640, 720))
-    canvas_player_2 = pygame.Surface((640, 720))
-    player_1_camera = pygame.Rect(0, 0, 640, 720)
-    player_2_camera = pygame.Rect(0, 0, 640, 720)
-    sub_surface_1 = canvas_player_1.subsurface(player_1_camera)
-    sub_surface_2 = canvas_player_2.subsurface(player_2_camera)
-
-    border_in_middle = pygame.draw.rect(
-        screen, (255, 255, 255), (635, 0, 10, 720))
-
     finishline = [1280 // 2, 360, 40, 200]
     # scale car images
     for i in range(len(car_images)):
@@ -378,10 +357,8 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        camera_position_1 = (-player_1.position[0] + 640 / 2, -
-                             player_1.position[1] + 720 / 2)
-        camera_position_2 = (-player_2.position[0] + 1280 / 1.5, -
-                             player_2.position[1] + 720 / 2)
+        camera_position = (-player_1.position[0] + 640 / 2, -
+                           player_1.position[1] + 720 / 2)
         player_1.draw_tire_marks(tire_marks_screen)
         player_2.draw_tire_marks(tire_marks_screen)
 
@@ -397,13 +374,10 @@ def main():
         #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
 
         draw(screen, player_1, player_2, car_images,
-             finishline, camera_position_1, camera_position_2, sub_surface_1, sub_surface_2, tire_marks_screen)
+             finishline, camera_position, tire_marks_screen)
         for wall in walls:
             pygame.draw.rect(screen, color(1, 1, 1),
-                             (wall.position[0] + camera_position_1[0], wall.position[1] + camera_position_1[1], wall.size[0], wall.size[1]))
-        for wall in walls:
-            pygame.draw.rect(screen, color(1, 1, 1),
-                             (wall.position[0] + camera_position_2[0], wall.position[1] + camera_position_2[1], wall.size[0], wall.size[1]))
+                             (wall.position[0] + camera_position[0], wall.position[1] + camera_position[1], wall.size[0], wall.size[1]))
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
