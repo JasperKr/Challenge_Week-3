@@ -351,6 +351,8 @@ class Player():
             tire_color = color(0.3 + random_variation_color, 0.3 +
                                random_variation_color, 0.3 + random_variation_color)
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
+            tire_squeak_sound = pygame.mixer.Sound("Tires Squeaking.mp3")
+            tire_squeak_sound.play()
 
 
 class car_color_chooser():
