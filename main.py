@@ -344,7 +344,7 @@ class Player():
         blitRotate(screen, car_images[self.car_type],
                    (self.position[0] + camera_position[0], self.position[1] + camera_position[1]), [151 / 4, 303 / 4], -self.angle - 90)
 
-    def draw_tire_marks(self, screen: pygame.Surface):
+    def draw_tire_marks(self, screen: pygame.Surface, sounds):
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         if abs(dot_product(car_right_vector, normalize(self.velocity))) > 0.4 and length(self.velocity) > 200:
@@ -374,8 +374,7 @@ class Player():
             tire_color = color(0.3 + random_variation_color, 0.3 +
                                random_variation_color, 0.3 + random_variation_color)
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
-            tire_squeak_sound = pygame.mixer.Sound("Tires Squeaking.mp3")
-            tire_squeak_sound.play()
+            sounds["tires_squeaking"].play()
 
 
 class car_color_chooser():
@@ -500,10 +499,12 @@ def main():
         "collision": pygame.mixer.Sound("src/assets/taco-bell-bong-sfx.mp3"),
         "horn": pygame.mixer.Sound("src/assets/dixie-horn.mp3"),
         "collision_car_car": pygame.mixer.Sound("src/assets/clown-horn-short.mp3"),
+        "tires_squeaking": pygame.mixer.Sound("src/assets/Tires Squeaking.mp3")
     }
     sounds["horn"].set_volume(0.1)
     sounds["collision"].set_volume(0.2)
     sounds["collision_car_car"].set_volume(0.2)
+    sounds["tires_squeaking"].set_volume(0.2)
 
     finishline = [4325, 500, 40, 550]
     # scale car images
@@ -550,7 +551,7 @@ def main():
         camera_position = (-players[0].position[0] + 1280 / 2, -
                            players[0].position[1] + 720 / 2)
         for player in players:
-            player.draw_tire_marks(tire_marks_screen)
+            player.draw_tire_marks(tire_marks_screen, sounds)
 
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_ESCAPE]:
@@ -561,7 +562,7 @@ def main():
                           ai_waypoints, players, sounds)
 
         draw(screen, players, car_images,
-             finishline, camera_position, tire_marks_screen, clock.get_fps())
+             camera_position, tire_marks_screen)
 
         # for waypoint in ai_waypoints[ai_waypoints_index]:
         #     draw_color = (255, 0, 0)
