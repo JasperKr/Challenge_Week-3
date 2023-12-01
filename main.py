@@ -128,9 +128,9 @@ def aabb_circle(x, y, w, h, cx, cy, radius):
 
 
 def sphere_sphere(x, y, r, x1, y1, r1):
-    dist = length((x-x1, y-y1))
-    if dist < r+r1:
-        return (x+x1, y+y1), normalize((x-x1, y-y1)), (r+r1)-dist
+    dist = length((x - x1, y - y1))
+    if dist < r + r1:
+        return (x + x1, y + y1), normalize((x - x1, y - y1)), (r + r1) - dist
     else:
         return False
 
@@ -279,7 +279,7 @@ class Player():
 
     def handle_player_collision(self, player):
         collision = sphere_sphere(
-            self.position[0], self.position[1], self.radius*1.25, player.position[0], player.position[1], player.radius*1.25)
+            self.position[0], self.position[1], self.radius * 1.25, player.position[0], player.position[1], player.radius * 1.25)
         if collision:
             self.position[0] += collision[1][0] * collision[2] * 0.5
             self.position[1] += collision[1][1] * collision[2] * 0.5
@@ -288,7 +288,7 @@ class Player():
             player.position[1] -= collision[1][1] * collision[2] * 0.5
 
             local_velocity = (
-                self.velocity[0]-player.velocity[0], self.velocity[1]-player.velocity[1])
+                self.velocity[0] - player.velocity[0], self.velocity[1] - player.velocity[1])
 
             direction = dot_product(local_velocity, collision[1])
 
@@ -301,8 +301,8 @@ class Player():
     def update_ai(self, dt, ai_waypoints):
         car_angle = math.radians(self.angle)
         next_waypoint = ai_waypoints[self.ai_type][self.waypoint_index]
-        difference = [next_waypoint[0]-self.position[0],
-                      next_waypoint[1]-self.position[1]]
+        difference = [next_waypoint[0] - self.position[0],
+                      next_waypoint[1] - self.position[1]]
         if length(difference) < 400:  # 400: overpowered
             self.waypoint_index += 1
             self.waypoint_index %= len(ai_waypoints[self.ai_type])
@@ -413,7 +413,7 @@ def carswitcher(key_pressed):
         return "ready"
 
 
-def draw(screen, players, car_images, finishline, camera_position, tire_marks_screen, fps):
+def draw(screen, players, car_images, camera_position, tire_marks_screen):
     screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
     player_1_score_text = bauhaus_font.render(
@@ -448,7 +448,7 @@ def main():
         Player(car_type=3, position=[5760, 635],
                angle=-180, is_ai=True, ai_type=3)
     ]
-    # car_color = car_color_chooser(players[0])
+    car_color = car_color_chooser(players[0])
 
     car_images = [
         pygame.image.load("assets/car_1.png"),
@@ -493,17 +493,18 @@ def main():
         (255, 255, 0)
     ]
 
-    # while CHOOSING_COLOR:
-    #    keys_pressed = pygame.key.get_pressed()
-    #    color_of_car = carswitcher(keys_pressed)
-    #    if color_of_car != "ready":
-    #        car_color.change_color(color_of_car)
-    #    if color_of_car == "ready":
-    #        CHOOSING_COLOR = False
-
+    # choosing_color = True
     running = True
     start_time = time.time()
     while running:
+        # while choosing_color:
+        #    keys_pressed = pygame.key.get_pressed()
+        #    color_of_car = carswitcher(keys_pressed)
+        #    if color_of_car != "ready":
+        #        car_color.change_color(color_of_car)
+        #    if color_of_car == "ready":
+        #        choosing_color = False
+
         dt = time.time() - start_time
         start_time = time.time()
         for event in pygame.event.get():
