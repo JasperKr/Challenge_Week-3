@@ -3,7 +3,8 @@ import pygame_shaders
 import math
 import time
 import random
-from walls import walls
+import py2exe
+from src.game_data import walls, ai_waypoints
 from pygame.locals import *
 
 pygame.init()
@@ -31,6 +32,31 @@ def normalize(a1):
 
 def point_aabb(px, py, x, y, w, h):
     return px > x and py and px < x + w and py > y and py < y + h
+
+
+def lerp(a, b, i):
+    dist = b - a
+    dist = (dist + math.pi) % (2 * math.pi) - math.pi
+    step = i
+    if abs(dist) <= step:
+        return b
+    else:
+        if dist < 0:
+            step = -step
+        a += step
+    return a
+
+
+def get_lerp_step(a, b, i):
+    dist = b - a
+    dist = (dist + math.pi) % (2 * math.pi) - math.pi
+    step = i
+    if abs(dist) <= step:
+        return -b
+    else:
+        if dist < 0:
+            step = -step
+        return step
 
 
 def is_obb_overlap(o1, o2):
@@ -102,6 +128,14 @@ def aabb_circle(x, y, w, h, cx, cy, radius):
         return False
 
 
+def sphere_sphere(x, y, r, x1, y1, r1):
+    dist = length((x - x1, y - y1))
+    if dist < r + r1:
+        return (x + x1, y + y1), normalize((x - x1, y - y1)), (r + r1) - dist
+    else:
+        return False
+
+
 def blitRotate(surf, image, pos, originPos, angle):
     # offset from pivot to center
     image_rect = image.get_rect(
@@ -142,7 +176,7 @@ class Obb():
 
 
 class Player():
-    def __init__(self, position=None, radius=40.0, drag=0.3, angular_drag=4, angle=0, car_type=0) -> None:
+    def __init__(self, position=None, radius=40.0, drag=0.3, angular_drag=4, angle=0, car_type=0, is_ai=False, ai_type=0) -> None:
         if position is None:
             position = [0.0, 0.0]
         self.position = position
@@ -155,30 +189,43 @@ class Player():
         self.car_type = car_type
         self.on_finishline = False
         self.score = -1
+        self.waypoint_index = 0
+        self.is_ai = is_ai
+        self.ai_type = ai_type
+        self.power_penalty = 1
+        self.teleport_timer = 5
 
-    def apply_force(self, x, y):
-        self.velocity[0] += x
-        self.velocity[1] += y
+    def apply_force(self, x, y, dt):
+        self.velocity[0] += x * dt
+        self.velocity[1] += y * dt
 
     def handle_user_input(self, input: str, dt):
         # input: up, down, left, right
         angle = math.radians(self.angle)
-        acceleration = self.score * 1 + 15
+        acceleration = (self.score * 1 + 15) * 60  # 60 fps
+        acceleration /= self.power_penalty
         direction = [math.cos(angle), math.sin(angle)]
         if input == "up":
             self.apply_force(direction[0] * acceleration,
-                             direction[1] * acceleration)
+                             direction[1] * acceleration, dt)
         if input == "down":
             self.apply_force(-direction[0] *
-                             acceleration, -direction[1] * acceleration)
+                             acceleration, -direction[1] * acceleration, dt)
         if input == "left":
             self.angular_velocity -= 1200 * dt
         if input == "right":
             self.angular_velocity += 1200 * dt
         if input == "break":
-            pass
+            break_force = 1000
+            if length(self.velocity) > break_force * dt:
+                direction = normalize(self.velocity)
+                self.velocity[0] -= direction[0] * break_force * dt
+                self.velocity[1] -= direction[1] * break_force * dt
+            else:
+                self.velocity[0] = 0
+                self.velocity[1] = 0
 
-    def update(self, dt, walls, finishline):
+    def update(self, dt, walls, finishline, ai_waypoints, players, sounds):
         self.position[0] += self.velocity[0] * dt
         self.position[1] += self.velocity[1] * dt
 
@@ -188,21 +235,26 @@ class Player():
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         side_velocity = dot_product(car_right_vector, normalize(self.velocity))
+
+        self.power_penalty = max(self.power_penalty - dt, 1)
+
         self.apply_force(
-            car_right_vector[0] * -side_velocity * 15, car_right_vector[1] * -side_velocity * 15)
+            car_right_vector[0] * -side_velocity * 900, car_right_vector[1] * -side_velocity * 900, dt)
         strength = max((1000 - length(self.velocity)) / 1000, 0)
         self.apply_force(
-            car_right_vector[0] * -side_velocity * strength * 10, car_right_vector[1] * -side_velocity * strength * 10)
+            car_right_vector[0] * -side_velocity * strength * 600, car_right_vector[1] * -side_velocity * strength * 600, dt)
 
         self.angular_velocity = mix(
             self.angular_velocity, 0, dt * self.angular_drag)
 
         self.angle += self.angular_velocity * dt
 
+        collided = False
         for object in walls:
             collision = aabb_circle(object.position[0], object.position[1], object.size[0],
                                     object.size[1], self.position[0], self.position[1], self.radius)
             if collision != False:  # position,normal,depth
+                collided = True
                 self.position[0] += collision[1][0] * collision[2]
                 self.position[1] += collision[1][1] * collision[2]
 
@@ -211,6 +263,15 @@ class Player():
                 self.velocity[0] -= direction * collision[1][0]
                 self.velocity[1] -= direction * collision[1][1]
 
+                self.power_penalty = min(
+                    max(length(self.velocity) / 100, 1.5), 2.5)
+        if collided:
+            dist_from_camera = length(
+                ((players[0].position[0]) - self.position[0], (players[0].position[1]) - self.position[1])) * 0.005
+            dist_from_camera = max(1, min(dist_from_camera, 5)) / 10
+            sounds["collision"].set_volume(0.6 - dist_from_camera)
+            sounds["collision"].play()
+
         if point_aabb(self.position[0], self.position[1], finishline[0], finishline[1], finishline[2], finishline[3]):
             if not self.on_finishline:
                 self.on_finishline = True
@@ -218,12 +279,72 @@ class Player():
         else:
             self.on_finishline = False
 
+        self.angle %= 360
+
+        if self.is_ai:
+            self.update_ai(dt, ai_waypoints)
+
+        for player in players:
+            if player != self:
+                if self.handle_player_collision(player):
+                    dist_from_camera = length(
+                        ((players[0].position[0]) - self.position[0], (players[0].position[1]) - self.position[1])) * 0.005
+                    dist_from_camera = max(1, min(dist_from_camera, 5)) / 10
+                    sounds["collision_car_car"].set_volume(
+                        0.6 - dist_from_camera)
+                    sounds["collision_car_car"].play()
+
+    def handle_player_collision(self, player):
+        collision = sphere_sphere(
+            self.position[0], self.position[1], self.radius * 1.25, player.position[0], player.position[1], player.radius * 1.25)
+        if collision:
+            self.position[0] += collision[1][0] * collision[2] * 0.5
+            self.position[1] += collision[1][1] * collision[2] * 0.5
+
+            player.position[0] -= collision[1][0] * collision[2] * 0.5
+            player.position[1] -= collision[1][1] * collision[2] * 0.5
+
+            local_velocity = (
+                self.velocity[0] - player.velocity[0], self.velocity[1] - player.velocity[1])
+
+            direction = dot_product(local_velocity, collision[1])
+
+            self.velocity[0] -= direction * collision[1][0] * 0.5
+            self.velocity[1] -= direction * collision[1][1] * 0.5
+
+            player.velocity[0] += direction * collision[1][0] * 0.5
+            player.velocity[1] += direction * collision[1][1] * 0.5
+            return True
+        return False
+
+    def update_ai(self, dt, ai_waypoints):
+        car_angle = math.radians(self.angle)
+        next_waypoint = ai_waypoints[self.ai_type][self.waypoint_index]
+        difference = [next_waypoint[0] - self.position[0],
+                      next_waypoint[1] - self.position[1]]
+        self.teleport_timer -= dt
+        if length(difference) < 400:  # 400: overpowered
+            self.waypoint_index += 1
+            self.waypoint_index %= len(ai_waypoints[self.ai_type])
+            self.teleport_timer = 5
+        if self.teleport_timer <= 0:
+            self.position = [next_waypoint[0], next_waypoint[1]]
+        target_angle = math.atan2(difference[0], difference[1])
+        self.angle = math.degrees(
+            lerp(car_angle, -target_angle + math.pi * 0.5, 0.035))
+        car_right_vector = [-math.sin(math.radians(self.angle)),
+                            math.cos(math.radians(self.angle))]
+        # correction_angle = -dot_product(normalize(self.velocity),
+        # car_right_vector)
+        # self.angle += correction_angle
+        self.handle_user_input("up", dt)
+
     def draw(self, screen: pygame.Surface, car_images: list, camera_position):
         # draw car
         blitRotate(screen, car_images[self.car_type],
                    (self.position[0] + camera_position[0], self.position[1] + camera_position[1]), [151 / 4, 303 / 4], -self.angle - 90)
 
-    def draw_tire_marks(self, screen: pygame.Surface):
+    def draw_tire_marks(self, screen: pygame.Surface, sounds):
         car_right_vector = [-math.sin(math.radians(self.angle)),
                             math.cos(math.radians(self.angle))]
         if abs(dot_product(car_right_vector, normalize(self.velocity))) > 0.4 and length(self.velocity) > 200:
@@ -253,60 +374,80 @@ class Player():
             tire_color = color(0.3 + random_variation_color, 0.3 +
                                random_variation_color, 0.3 + random_variation_color)
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
+            sounds["tires_squeaking"].play()
 
 
-class Camera():
-    def __init__(self) -> None:
-        self.position = [0, 0]
-        self.screen = pygame.Surface(size=(1280 // 2, 720))
-        self.shader = pygame_shaders.Shader(size=(1280 // 2, 720), display=(1280 // 2, 720),
-                                            pos=(0, 0), vertex_path="shaders/vertex.glsl",
-                                            fragment_path="shaders/fragment.glsl", target_texture=self.screen)  # Load your shader!
+class car_color_chooser():
+    def __init__(self, player_1: Player) -> None:
+        self.player_1 = player_1
+
+    def change_color(self, chosen_car_color):
+        if chosen_car_color == "red":
+            self.player_1.car_type = 0
+        elif chosen_car_color == "green":
+            self.player_1.car_type = 1
+        elif chosen_car_color == "blue":
+            self.player_1.car_type = 2
+        elif chosen_car_color == "yellow":
+            self.player_1.car_type = 3
+        elif chosen_car_color == "ready":
+            return False
 
 
 # pygame_shaders.Shader.send(variable_name: str, data: List[float])
 dark_gray = (169, 169, 169)
 
 
-def player_movement(key_pressed, player_1, player_2, dt):
+def player_movement(key_pressed, players, dt, sounds):
     if key_pressed[pygame.K_w]:
-        player_1.handle_user_input("up", dt)
+        players[0].handle_user_input("up", dt)
     if key_pressed[pygame.K_a]:
-        player_1.handle_user_input("left", dt)
+        players[0].handle_user_input("left", dt)
     if key_pressed[pygame.K_d]:
-        player_1.handle_user_input("right", dt)
+        players[0].handle_user_input("right", dt)
     if key_pressed[pygame.K_s]:
-        player_1.handle_user_input("down", dt)
+        players[0].handle_user_input("down", dt)
     if key_pressed[pygame.K_LCTRL]:
-        player_1.handle_user_input("break", dt)
-    if key_pressed[pygame.K_UP]:
-        player_2.handle_user_input("up", dt)
-    if key_pressed[pygame.K_LEFT]:
-        player_2.handle_user_input("left", dt)
-    if key_pressed[pygame.K_RIGHT]:
-        player_2.handle_user_input("right", dt)
-    if key_pressed[pygame.K_DOWN]:
-        player_2.handle_user_input("down", dt)
-    if key_pressed[pygame.K_RCTRL]:
-        player_2.handle_user_input("break", dt)
+        players[0].handle_user_input("break", dt)
+    if key_pressed[pygame.K_h]:
+        sounds["horn"].play()
 
 
-def draw(screen, player_1, player_2, car_images, finishline, camera_position):
+def carswitcher(key_pressed):
+    if key_pressed[pygame.K_1]:
+        return "red"
+    if key_pressed[pygame.K_2]:
+        return "green"
+    if key_pressed[pygame.K_3]:
+        return "blue"
+    if key_pressed[pygame.K_4]:
+        return "yellow"
+    if key_pressed[pygame.K_0]:
+        return "ready"
+
+
+def carswitcher(key_pressed):
+    if key_pressed[pygame.K_1]:
+        return "red"
+    if key_pressed[pygame.K_2]:
+        return "green"
+    if key_pressed[pygame.K_3]:
+        return "blue"
+    if key_pressed[pygame.K_4]:
+        return "yellow"
+    if key_pressed[pygame.K_0]:
+        return "ready"
+
+
+def draw(screen, players, car_images, camera_position, tire_marks_screen):
+    screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
-    line = (finishline[0] + camera_position[0],
-            finishline[1] + camera_position[1],
-            finishline[2],
-            finishline[3])
-    pygame.draw.rect(screen, (100, 200, 50), line)
     player_1_score_text = bauhaus_font.render(
-        f"Player 1 score: {player_1.score}", True, (255, 255, 0))
-    player_2_score_text = bauhaus_font.render(
-        f"Player 2 score: {player_2.score}", True, (255, 255, 0))
-    screen.blit(player_2_score_text,
-                (1280 - player_2_score_text.get_width() - 10, 10))
+        f"Player 1 score: {players[0].score}", True, (255, 255, 0))
     screen.blit(player_1_score_text, (10, 10))
-    player_1.draw(screen, car_images, camera_position)
-    player_2.draw(screen, car_images, camera_position)
+    players[0].draw(screen, car_images, camera_position)
+    for player in players:
+        player.draw(screen, car_images, camera_position)
 
 
 def color(r=0, g=0, b=0):
@@ -314,24 +455,35 @@ def color(r=0, g=0, b=0):
 
 
 def main():
-
+    # CHOOSING_COLOR = True
+    screen = pygame.display.set_mode(
+        (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption("Racegame")
     clock = pygame.time.Clock()
 
-    screen = pygame.display.set_mode(
-        (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
+    shader = pygame_shaders.Shader(size=(1280, 720), display=(1280, 720),
+                                   pos=(0, 0), vertex_path="src/shaders/vertex.glsl",
+                                   fragment_path="src/shaders/fragment.glsl", target_texture=screen)  # Load your shader!
 
-    player_1 = Player(position=[4630, 875], angle=-180)
-    player_2 = Player(car_type=2)
+    players = [
+        Player(position=[4630, 875], angle=-180),
+        Player(car_type=1, position=[4940, 635],
+               angle=-180, is_ai=True, ai_type=1),
+        Player(car_type=2, position=[5340, 875],
+               angle=-180, is_ai=True, ai_type=2),
+        Player(car_type=3, position=[5760, 635],
+               angle=-180, is_ai=True, ai_type=3)
+    ]
+    car_color = car_color_chooser(players[0])
 
     car_images = [
-        pygame.image.load("assets/car_1.png"),
-        pygame.image.load("assets/car_2.png"),
-        pygame.image.load("assets/car_3.png"),
-        pygame.image.load("assets/car_4.png"),
+        pygame.image.load("src/assets/car_1.png"),
+        pygame.image.load("src/assets/car_2.png"),
+        pygame.image.load("src/assets/car_3.png"),
+        pygame.image.load("src/assets/car_4.png"),
     ]
 
-    racetrack = pygame.image.load("assets/racetrack.png")
+    racetrack = pygame.image.load("src/assets/racetrack.png")
     scale = 12
     tire_marks_screen = pygame.transform.scale(
         pygame.Surface((1280, 720)), (1280 * scale, 720 * scale))
@@ -343,12 +495,18 @@ def main():
     racetrack = pygame.transform.scale(racetrack, (1280 * scale, 720 * scale))
     tire_marks_screen.blit(tire_marks_replace_surface, (0, 0))
 
-    cameras = [
-        Camera(),
-        Camera(),
-    ]
+    sounds = {
+        "collision": pygame.mixer.Sound("src/assets/taco-bell-bong-sfx.mp3"),
+        "horn": pygame.mixer.Sound("src/assets/dixie-horn.mp3"),
+        "collision_car_car": pygame.mixer.Sound("src/assets/clown-horn-short.mp3"),
+        "tires_squeaking": pygame.mixer.Sound("src/assets/Tires Squeaking.mp3")
+    }
+    sounds["horn"].set_volume(0.1)
+    sounds["collision"].set_volume(0.2)
+    sounds["collision_car_car"].set_volume(0.2)
+    sounds["tires_squeaking"].set_volume(0.2)
 
-    finishline = [1280 // 2, 360, 40, 200]
+    finishline = [4325, 500, 40, 550]
     # scale car images
     for i in range(len(car_images)):
         car_images[i] = pygame.transform.scale(
@@ -360,52 +518,83 @@ def main():
         wall.size[0] *= scale
         wall.size[1] *= scale
 
+    added_waypoint_last_frame = False
+    ai_waypoints_index = 3
+    car_color_names = [
+        "Red", "Green", "Blue", "Yellow"
+    ]
+    car_colors = [
+        (255, 0, 0),
+        (0, 255, 0),
+        (0, 0, 255),
+        (255, 255, 0)
+    ]
+
+    # choosing_color = True
     running = True
-    start_time = 0
+    start_time = time.time()
     while running:
+        # while choosing_color:
+        #    keys_pressed = pygame.key.get_pressed()
+        #    color_of_car = carswitcher(keys_pressed)
+        #    if color_of_car != "ready":
+        #        car_color.change_color(color_of_car)
+        #    if color_of_car == "ready":
+        #        choosing_color = False
+
         dt = time.time() - start_time
         start_time = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        cameras[0].position = [-player_1.position[0] + 1280 / 4, -
-                               player_1.position[1] + 720 / 2]
-        cameras[1].position = [-player_2.position[0] + 1280 / 4, -
-                               player_2.position[1] + 720 / 2]
-        player_1.draw_tire_marks(tire_marks_screen)
-        player_2.draw_tire_marks(tire_marks_screen)
+        camera_position = (-players[0].position[0] + 1280 / 2, -
+                           players[0].position[1] + 720 / 2)
+        for player in players:
+            player.draw_tire_marks(tire_marks_screen, sounds)
 
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_ESCAPE]:
             running = False
-        player_movement(keys_pressed, player_1, player_2, dt)
-        player_1.update(dt, walls, finishline)
-        player_2.update(dt, walls, finishline)
-        # screen.blit(racetrack,
-        #            (0, 0), (-camera_position[0], -camera_position[1], -camera_position[0] + 1280, -camera_position[1] + 720))
-        cameras[0].screen.blit(tire_marks_screen, cameras[0].position)
-        cameras[1].screen.blit(tire_marks_screen, cameras[1].position)
+        player_movement(keys_pressed, players, dt, sounds)
+        for player in players:
+            player.update(dt, walls, finishline,
+                          ai_waypoints, players, sounds)
 
-        draw(cameras[0].screen, player_1, player_2, car_images,
-             finishline, cameras[0].position)
-        draw(cameras[1].screen, player_1, player_2, car_images,
-             finishline, cameras[1].position)
+        draw(screen, players, car_images,
+             camera_position, tire_marks_screen)
+
+        # for waypoint in ai_waypoints[ai_waypoints_index]:
+        #     draw_color = (255, 0, 0)
+        #     if ai_waypoints_index == 1:
+        #         draw_color = (0, 255, 0)
+        #     elif ai_waypoints_index == 2:
+        #         draw_color = (0, 0, 255)
+        #     elif ai_waypoints_index == 3:
+        #         draw_color = (255, 255, 0)
+        #     pygame.draw.circle(
+        #         screen, draw_color, (waypoint[0]+camera_position[0], waypoint[1]+camera_position[1]), 20, 0)
+
+        bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
+        for player in players:
+            if player.score == 3:
+                car_color = car_color_names[player.car_type]
+                win_text = bauhaus_font.render(
+                    f"{car_color} player wins!!!!", True, car_colors[player.car_type])
+                screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
+                                       720 / 2 - win_text.get_height() - 200))
+                running = False
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
-        cameras[0].shader.render(cameras[0].screen)
-        cameras[1].shader.render(cameras[1].screen)
-        screen.blit(cameras[0].screen,
-                    pygame.rect.Rect(0, 0, 1280 // 2, 720))
-        screen.blit(cameras[1].screen,
-                    pygame.rect.Rect(1280 // 2, 0, 1280 // 2, 720))
         pygame.display.flip()
 
         clock.tick(60)  # limits FPS to 60
-
+    time.sleep(5)
     pygame.quit()
 
 
 if __name__ == "__main__":
     main()
+
+py2exe.freeze()
