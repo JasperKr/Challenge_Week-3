@@ -374,7 +374,7 @@ class Player():
             tire_color = color(0.3 + random_variation_color, 0.3 +
                                random_variation_color, 0.3 + random_variation_color)
             pygame.draw.circle(screen, tire_color, tire_4, 10, 0)
-            sounds["tires_squeaking"].play()
+            # sounds["tires_squeaking"].play()
 
 
 class car_color_chooser():
@@ -587,6 +587,7 @@ def main():
 
         # Render the display onto the OpenGL display with the shaders!
         # screen = pygame.transform.scale(screen, (1280 * 2, 720 * 2))
+        shader.render(screen)
         pygame.display.flip()
 
         clock.tick(60)  # limits FPS to 60
