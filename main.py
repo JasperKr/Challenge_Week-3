@@ -3,7 +3,7 @@ import pygame_shaders
 import math
 import time
 import random
-import py2exe
+# import py2exe
 from src.game_data import walls, ai_waypoints
 from pygame.locals import *
 
@@ -267,7 +267,7 @@ class Player():
                     max(length(self.velocity) / 100, 1.5), 2.5)
         if collided:
             dist_from_camera = length(
-                ((players[0].position[0])-self.position[0], (players[0].position[1])-self.position[1])) * 0.005
+                ((players[0].position[0]) - self.position[0], (players[0].position[1]) - self.position[1])) * 0.005
             dist_from_camera = max(1, min(dist_from_camera, 5)) / 10
             sounds["collision"].set_volume(0.6 - dist_from_camera)
             sounds["collision"].play()
@@ -288,7 +288,7 @@ class Player():
             if player != self:
                 if self.handle_player_collision(player):
                     dist_from_camera = length(
-                        ((players[0].position[0])-self.position[0], (players[0].position[1])-self.position[1])) * 0.005
+                        ((players[0].position[0]) - self.position[0], (players[0].position[1]) - self.position[1])) * 0.005
                     dist_from_camera = max(1, min(dist_from_camera, 5)) / 10
                     sounds["collision_car_car"].set_volume(
                         0.6 - dist_from_camera)
@@ -320,8 +320,8 @@ class Player():
     def update_ai(self, dt, ai_waypoints):
         car_angle = math.radians(self.angle)
         next_waypoint = ai_waypoints[self.ai_type][self.waypoint_index]
-        difference = [next_waypoint[0]-self.position[0],
-                      next_waypoint[1]-self.position[1]]
+        difference = [next_waypoint[0] - self.position[0],
+                      next_waypoint[1] - self.position[1]]
         self.teleport_timer -= dt
         if length(difference) < 400:  # 400: overpowered
             self.waypoint_index += 1
@@ -598,4 +598,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-py2exe.freeze()
+# py2exe.freeze()
