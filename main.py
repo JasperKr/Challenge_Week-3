@@ -409,7 +409,7 @@ def player_movement(key_pressed, players, dt, sounds):
         players[0].handle_user_input("down", dt)
     if key_pressed[pygame.K_LCTRL]:
         players[0].handle_user_input("break", dt)
-    if key_pressed[pygame.K_h]:
+    if key_pressed[pygame.K_SPACE]:
         sounds["horn"].play()
 
 
@@ -467,11 +467,11 @@ def main():
 
     players = [
         Player(position=[4630, 875], angle=-180),
-        Player(car_type=1, position=[4940, 635],
+        Player(car_type=1, position=[5760, 635],
                angle=-180, is_ai=True, ai_type=1),
         Player(car_type=2, position=[5340, 875],
                angle=-180, is_ai=True, ai_type=2),
-        Player(car_type=3, position=[5760, 635],
+        Player(car_type=3, position=[4940, 635],
                angle=-180, is_ai=True, ai_type=3)
     ]
     car_color = car_color_chooser(players[0])
@@ -499,7 +499,9 @@ def main():
         "collision": pygame.mixer.Sound("src/assets/taco-bell-bong-sfx.mp3"),
         "horn": pygame.mixer.Sound("src/assets/dixie-horn.mp3"),
         "collision_car_car": pygame.mixer.Sound("src/assets/clown-horn-short.mp3"),
-        "tires_squeaking": pygame.mixer.Sound("src/assets/Tires Squeaking.mp3")
+        "tires_squeaking": pygame.mixer.Sound("src/assets/Tires Squeaking.mp3"),
+        "winning_sound": pygame.mixer.Sound("src/assets/winningsound.mp3"),
+        "losing_sound": pygame.mixer.Sound("src/assets/losingsound.mp3")
     }
     sounds["horn"].set_volume(0.1)
     sounds["collision"].set_volume(0.2)
@@ -577,12 +579,21 @@ def main():
 
         bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
         for player in players:
-            if player.score == 3:
+            if player.score == 3 and player.car_type != 0:
                 car_color = car_color_names[player.car_type]
                 win_text = bauhaus_font.render(
                     f"{car_color} player wins!!!!", True, car_colors[player.car_type])
                 screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
                                        720 / 2 - win_text.get_height() - 200))
+                sounds["losing_sound"].play()
+                running = False
+            elif player.score == 3 and player.car_type == 0:
+                car_color = car_color_names[player.car_type]
+                win_text = bauhaus_font.render(
+                    f"{car_color} player wins!!!!", True, car_colors[player.car_type])
+                screen.blit(win_text, (1280 / 2 - (win_text.get_width() / 2),
+                                       720 / 2 - win_text.get_height() - 200))
+                sounds["winning_sound"].play()
                 running = False
 
         # Render the display onto the OpenGL display with the shaders!
