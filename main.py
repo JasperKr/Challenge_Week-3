@@ -455,7 +455,6 @@ def color(r=0, g=0, b=0):
 
 
 def main():
-    # CHOOSING_COLOR = True
     screen = pygame.display.set_mode(
         (1280, 720), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption("Racegame")
@@ -532,7 +531,6 @@ def main():
         (255, 255, 0)
     ]
 
-    # choosing_color = True
     running = False
     while not running:
         for event in pygame.event.get():
