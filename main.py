@@ -3,7 +3,6 @@ import pygame_shaders
 import math
 import time
 import random
-# import py2exe
 from src.game_data import walls, ai_waypoints
 from pygame.locals import *
 
