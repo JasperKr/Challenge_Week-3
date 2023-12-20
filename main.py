@@ -533,17 +533,22 @@ def main():
     ]
 
     # choosing_color = True
-    running = True
+    running = False
+    while not running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = True
+        keys_pressed = pygame.key.get_pressed()
+        color_of_car = carswitcher(keys_pressed)
+        if not keys_pressed[pygame.K_0]:
+            car_color.change_color(color_of_car)
+        elif keys_pressed[pygame.K_0]:
+            running = True
+        pygame.display.flip()
+        clock.tick(60)  # limits FPS to 60
+
     start_time = time.time()
     while running:
-        # while choosing_color:
-        #    keys_pressed = pygame.key.get_pressed()
-        #    color_of_car = carswitcher(keys_pressed)
-        #    if color_of_car != "ready":
-        #        car_color.change_color(color_of_car)
-        #    if color_of_car == "ready":
-        #        choosing_color = False
-
         dt = time.time() - start_time
         start_time = time.time()
         for event in pygame.event.get():
