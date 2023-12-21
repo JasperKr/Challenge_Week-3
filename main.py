@@ -425,19 +425,6 @@ def carswitcher(key_pressed):
         return "ready"
 
 
-def carswitcher(key_pressed):
-    if key_pressed[pygame.K_1]:
-        return "red"
-    if key_pressed[pygame.K_2]:
-        return "green"
-    if key_pressed[pygame.K_3]:
-        return "blue"
-    if key_pressed[pygame.K_4]:
-        return "yellow"
-    if key_pressed[pygame.K_0]:
-        return "ready"
-
-
 def draw(screen, players, car_images, camera_position, tire_marks_screen):
     screen.blit(tire_marks_screen, camera_position)
     bauhaus_font = pygame.font.SysFont('bauhaus93', 32, bold=True)
