@@ -5,8 +5,18 @@ import time
 import random
 from src.game_data import walls, ai_waypoints
 from pygame.locals import *
+from network import Network
 
 pygame.init()
+
+
+def read_pos(str):
+    str = str.split(",")
+    return int(str[0]), int(str[1])
+
+
+def make_pos(tup):
+    return str(tup[0]) + "," + str(tup[1])
 
 
 def mix(v, w, i):
