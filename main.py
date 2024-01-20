@@ -5,8 +5,18 @@ import time
 import random
 from src.game_data import walls, ai_waypoints
 from pygame.locals import *
+from network import Network
 
 pygame.init()
+
+
+def read_pos(str):
+    str = str.split(",")
+    return int(str[0]), int(str[1])
+
+
+def make_pos(tup):
+    return str(tup[0]) + "," + str(tup[1])
 
 
 def mix(v, w, i):
@@ -410,19 +420,6 @@ def player_movement(key_pressed, players, dt, sounds):
         players[0].handle_user_input("break", dt)
     if key_pressed[pygame.K_SPACE]:
         sounds["horn"].play()
-
-
-def carswitcher(key_pressed):
-    if key_pressed[pygame.K_1]:
-        return "red"
-    if key_pressed[pygame.K_2]:
-        return "green"
-    if key_pressed[pygame.K_3]:
-        return "blue"
-    if key_pressed[pygame.K_4]:
-        return "yellow"
-    if key_pressed[pygame.K_0]:
-        return "ready"
 
 
 def carswitcher(key_pressed):
