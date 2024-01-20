@@ -331,8 +331,8 @@ class Player():
         target_angle = math.atan2(difference[0], difference[1])
         self.angle = math.degrees(
             lerp(car_angle, -target_angle + math.pi * 0.5, 0.035))
-        car_right_vector = [-math.sin(math.radians(self.angle)),
-                            math.cos(math.radians(self.angle))]
+        # car_right_vector = [-math.sin(math.radians(self.angle)),
+        #                    math.cos(math.radians(self.angle))]
         # correction_angle = -dot_product(normalize(self.velocity),
         # car_right_vector)
         # self.angle += correction_angle
